@@ -13,17 +13,21 @@ Assets in this folder were taken from the **running debug app** on an emulator, 
 | `add-list-share-remove.mp4` | Empty light → **in-app document picker** add PNG → picker add PDF → both rows → system Share sheet → Remove PDF → Remove last PNG → empty chrome again, **no** stale “1 item” |
 | `text-link-light.png` | Light list after `ACTION_SEND text/plain`: TEXT row (first line + `TEXT · size`) + LINK row (**hostname title**, truncated URL subtitle) mixed with PDF + PNG, **4 items** |
 | `text-link-dark.png` | Same four rows, dark |
+| `selection-light.png` | Light selection, **2 selected**, Share + Remove in the bar, two TEXT rows checked, LINK row (`example.com`) unchecked |
+| `selection-dark.png` | Same selection, dark |
+| `arrange-light.png` | Light arrange, drag handles and Move up / Move down on each row, **Done** in the bar |
+| `arrange-dark.png` | Same arrange, dark |
 
 `add-list-share-remove.mp4` is **58 s**, 720×1280, H.264, 12 fps.
 
 ## Device
 
 - AVD `pocket_gapis30`: 720×1280, **API 30**, `google_apis` x86_64
-- Debug APK: `:app:assembleDebug` on the text+link slice (`text/plain` share-in)
+- Debug APK: `:app:assembleDebug` on the selection+arrange+batch slice
 - Package: `com.shobhankarthish.pocket`
 - Theme: `adb shell cmd uimode night no`
 - Accel: **TCG** (`-accel off -gpu swiftshader_indirect`). Nested KVM kernel-BUGs in `kvm_arch_vcpu_create` even after `chmod 666 /dev/kvm`.
-- Frames: emulator console `screenrecord screenshot` (host path). `adb screencap` can be black under TCG. Input: console `event mouse` / `event send EV_KEY`.
+- Frames: earlier stills used emulator console `screenrecord screenshot`. This take used `adb exec-out screencap` for dark and arrange because the first console dark frame was black. Input: `adb shell input tap` after `uiautomator dump`.
 
 ## Collect / add (this take)
 
@@ -42,6 +46,16 @@ How-to sheet was already dismissed (`how_to_add_seen`) so the empty launch is th
 
 Share-out of the text row opened the system sheet with that prose as `EXTRA_TEXT` (Copy / Pocket / Bluetooth / Gmail / Messages). Remove of that row left **3 items** and deleted the `.txt`.
 
+## Selection and arrange stills
+
+`selection-*.png` and `arrange-*.png` are from a later boot of the same AVD after installing the selection+arrange+batch APK. How to add was dismissed. Three `ACTION_SEND` `text/plain` extras filled the shelf:
+
+- `Second note for arrange.`
+- `Pack the bag. Do not forget socks.`
+- `https://example.com/notes` (title `example.com`)
+
+Overflow **Select items**, then the first two checkboxes, produced **2 selected** with Share and Remove. Overflow **Arrange** showed the six-dot handles and the Move up / Move down buttons. Back and Done both returned to the browse bar.
+
 ## Video assembly
 
 Two emulator-console WebM takes, trimmed and concatenated, then encoded to H.264:
@@ -56,4 +70,5 @@ There is a cut between the first remove and the last-item remove (same remaining
 - No physical device.
 - `am start` + MediaStore `ACTION_SEND` still cannot grant read to Pocket on API 30; that is a sender-grant problem, not the picker path.
 - No multi-shelf, no bubble (out of slice).
+- These stills do not restage `ACTION_SEND_MULTIPLE`. That path is covered by unit tests (`ShareIntakeTest`, `ShareBatchTest`, `BatchTallyTest`).
 - APK is not committed.

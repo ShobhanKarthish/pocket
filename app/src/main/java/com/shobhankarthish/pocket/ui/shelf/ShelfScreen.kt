@@ -371,12 +371,14 @@ private fun ShelfItemCard(
             .fillMaxWidth()
             .clip(CardShape)
             .background(MaterialTheme.colorScheme.surface)
-            .then(
+            .border(
+                1.dp,
                 if (dark) {
-                    Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CardShape)
+                    MaterialTheme.colorScheme.outline
                 } else {
-                    Modifier
+                    MaterialTheme.colorScheme.outlineVariant
                 },
+                CardShape,
             )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,

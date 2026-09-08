@@ -11,12 +11,14 @@ import com.shobhankarthish.pocket.shelf.ShelfItem
 import com.shobhankarthish.pocket.shelf.ShelfRepository
 import com.shobhankarthish.pocket.shelf.prefs.HowToAddPrefs
 import com.shobhankarthish.pocket.shelf.toInboundFile
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class ShelfViewModel(application: Application) : AndroidViewModel(application) {
@@ -27,13 +29,13 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
 
     val items: StateFlow<List<ShelfItem>> = repository.observeItems().stateIn(
         viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
+        SharingStarted.Eagerly,
         emptyList(),
     )
 
     val howToAddSeen: StateFlow<Boolean> = howToAddPrefs.seen.stateIn(
         viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
+        SharingStarted.Eagerly,
         true,
     )
 
@@ -45,15 +47,23 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun ingest(uri: Uri) {
-        viewModelScope.launch {
-            val inbound = getApplication<Application>().contentResolver.toInboundFile(uri)
-            val result = when (ingestor.ingest(inbound)) {
+        viewModelScope.launch { ingestSuspending(uri) }
+    }
+
+    suspend fun ingestSuspending(uri: Uri) {
+        val message = try {
+            val inbound = withContext(Dispatchers.IO) {
+                getApplication<Application>().contentResolver.toInboundFile(uri)
+            }
+            when (ingestor.ingest(inbound)) {
                 is IngestResult.Ok -> UserMessage.Added
                 IngestResult.Unsupported -> UserMessage.Unsupported
                 IngestResult.Failed -> UserMessage.Failed
             }
-            messages.send(result)
+        } catch (_: Exception) {
+            UserMessage.Failed
         }
+        messages.send(message)
     }
 
     fun remove(item: ShelfItem) {

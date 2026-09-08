@@ -1,6 +1,7 @@
 package com.shobhankarthish.pocket.shelf
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -75,7 +76,22 @@ class ItemIngestorTest {
     }
 
     @Test
-    fun removeDeletesLocalCopyAndRow() = runTest {
+    fun reconcileAfterIngestKeepsFileAndRow() = runTest {
+        val (ingestor, repo, files) = harness()
+        val ok = ingestor.ingest(
+            InboundFile(
+                mimeType = "image/png",
+                displayName = "pocket-demo.png",
+                openStream = { ByteArrayInputStream("png".toByteArray()) },
+            ),
+        ) as IngestResult.Ok
+        repo.reconcile()
+        assertTrue(files.file(ok.item.relativePath).exists())
+        assertEquals(1, repo.observeItems().first().size)
+    }
+
+    @Test
+    fun removeLastItemLeavesEmptyObservation() = runTest {
         val (ingestor, repo, files) = harness()
         val ok = ingestor.ingest(
             InboundFile(
@@ -89,5 +105,6 @@ class ItemIngestorTest {
         assertFalse(files.file(ok.item.relativePath).exists())
         repo.reconcile()
         assertTrue(files.listNames().isEmpty())
+        assertTrue(repo.observeItems().first().isEmpty())
     }
 }

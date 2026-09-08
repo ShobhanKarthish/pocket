@@ -35,14 +35,15 @@ class MainActivity : ComponentActivity() {
                 DarkBackground.toArgb(),
             ),
         )
-        pendingShare.value = consumeShare(intent)
+        pendingShare.value = peekShare(intent)
         setContent {
             PocketTheme {
                 val viewModel: ShelfViewModel = viewModel()
                 val share by pendingShare.collectAsStateWithLifecycle()
                 LaunchedEffect(share) {
                     val uri = share ?: return@LaunchedEffect
-                    viewModel.ingest(uri)
+                    viewModel.ingestSuspending(uri)
+                    dropShare(intent)
                     pendingShare.value = null
                 }
                 ShelfScreen(viewModel)
@@ -53,14 +54,16 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingShare.value = consumeShare(intent)
+        pendingShare.value = peekShare(intent)
     }
 
-    private fun consumeShare(intent: Intent?): Uri? {
+    private fun peekShare(intent: Intent?): Uri? {
         if (intent?.action != Intent.ACTION_SEND) return null
-        val uri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+        return IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+    }
+
+    private fun dropShare(intent: Intent) {
         intent.action = Intent.ACTION_MAIN
         intent.removeExtra(Intent.EXTRA_STREAM)
-        return uri
     }
 }

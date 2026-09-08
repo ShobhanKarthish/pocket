@@ -18,20 +18,18 @@ class ItemIngestor(
         val displayName = DisplayNames.sanitize(inbound.displayName, kind)
         val id = ids()
         val relativePath = "$id.${DisplayNames.extensionOf(displayName, kind)}"
+        val draft = ShelfItem(
+            id = id,
+            displayName = displayName,
+            mimeType = mime,
+            byteSize = 0,
+            relativePath = relativePath,
+            createdAtEpochMs = nowMs(),
+        )
         try {
             val stream = inbound.openStream() ?: return@withContext IngestResult.Failed
             stream.use { input ->
-                val size = files.write(relativePath, input)
-                val item = ShelfItem(
-                    id = id,
-                    displayName = displayName,
-                    mimeType = mime,
-                    byteSize = size,
-                    relativePath = relativePath,
-                    createdAtEpochMs = nowMs(),
-                )
-                repository.insert(item)
-                IngestResult.Ok(item)
+                IngestResult.Ok(repository.add(relativePath, input, draft))
             }
         } catch (_: Exception) {
             files.delete(relativePath)

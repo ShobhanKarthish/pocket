@@ -1,6 +1,7 @@
 package com.shobhankarthish.pocket.shelf
 
 import java.io.File
+import java.io.FileOutputStream
 import java.io.InputStream
 
 class ShelfFileStore(private val filesDir: File) {
@@ -15,8 +16,23 @@ class ShelfFileStore(private val filesDir: File) {
     fun write(relativePath: String, input: InputStream): Long {
         val dest = file(relativePath)
         dest.parentFile?.mkdirs()
-        dest.outputStream().use { output ->
-            return input.copyTo(output)
+        val tmp = File(dest.parentFile, "${dest.name}.part")
+        try {
+            val size = FileOutputStream(tmp).use { output ->
+                val copied = input.copyTo(output)
+                output.flush()
+                output.fd.sync()
+                copied
+            }
+            if (!tmp.renameTo(dest)) {
+                tmp.copyTo(dest, overwrite = true)
+                tmp.delete()
+            }
+            return size
+        } catch (t: Throwable) {
+            tmp.delete()
+            dest.delete()
+            throw t
         }
     }
 
@@ -25,7 +41,8 @@ class ShelfFileStore(private val filesDir: File) {
         file(relativePath).delete()
     }
 
-    fun listNames(): Set<String> = shelfDir.list()?.toSet() ?: emptySet()
+    fun listNames(): Set<String> =
+        shelfDir.list()?.filterNot { it.endsWith(".part") }?.toSet() ?: emptySet()
 
     companion object {
         const val DIR = "shelf"

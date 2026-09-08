@@ -1,5 +1,7 @@
 package com.shobhankarthish.pocket.ui.shelf
 
+import android.content.Context
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -73,6 +75,8 @@ private val IconWellShape = RoundedCornerShape(12.dp)
 @Composable
 fun ShelfScreen(viewModel: ShelfViewModel) {
     val items by viewModel.items.collectAsStateWithLifecycle()
+    val itemCount = items.size
+    val empty = itemCount == 0
     val howToAddSeen by viewModel.howToAddSeen.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -80,7 +84,17 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     var pendingRemove by remember { mutableStateOf<ShelfItem?>(null) }
     var barMenu by remember { mutableStateOf(false) }
 
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val picker = rememberLauncherForActivityResult(
+        contract = object : ActivityResultContracts.OpenDocument() {
+            override fun createIntent(context: Context, input: Array<String>): Intent {
+                return super.createIntent(context, input).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                }
+            }
+        },
+    ) { uri ->
         uri?.let(viewModel::ingest)
     }
 
@@ -100,8 +114,8 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         }
     }
 
-    LaunchedEffect(items, howToAddSeen) {
-        if (items.isEmpty() && !howToAddSeen) {
+    LaunchedEffect(empty, howToAddSeen) {
+        if (empty && !howToAddSeen) {
             showHowTo = true
         }
     }
@@ -114,7 +128,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             ShelfAppBar(
-                itemCount = items.size,
+                itemCount = itemCount,
                 menuExpanded = barMenu,
                 onMenuChange = { barMenu = it },
                 onHowToAdd = {
@@ -124,7 +138,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             )
         },
         floatingActionButton = {
-            if (items.isNotEmpty()) {
+            if (!empty) {
                 FloatingActionButton(
                     onClick = ::pickDocument,
                     shape = FabShape,
@@ -136,7 +150,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             }
         },
     ) { inner ->
-        if (items.isEmpty()) {
+        if (empty) {
             EmptyShelf(
                 modifier = Modifier
                     .fillMaxSize()

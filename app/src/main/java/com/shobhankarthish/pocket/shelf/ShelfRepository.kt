@@ -22,7 +22,10 @@ class ShelfRepository(
         mutex.withLock {
             try {
                 val size = files.write(relativePath, input)
-                val stored = item.copy(byteSize = size)
+                val stored = item.copy(
+                    byteSize = size,
+                    sortIndex = dao.maxSortIndex() + 1,
+                )
                 dao.insert(ShelfItemEntity.fromDomain(stored))
                 stored
             } catch (t: Throwable) {
@@ -32,9 +35,25 @@ class ShelfRepository(
         }
 
     suspend fun remove(item: ShelfItem) {
+        remove(listOf(item))
+    }
+
+    suspend fun remove(items: List<ShelfItem>) {
+        if (items.isEmpty()) return
         mutex.withLock {
-            files.delete(item.relativePath)
-            dao.deleteById(item.id)
+            items.forEach { item ->
+                files.delete(item.relativePath)
+                dao.deleteById(item.id)
+            }
+        }
+    }
+
+    suspend fun reorder(ids: List<String>) {
+        if (ids.isEmpty()) return
+        mutex.withLock {
+            ShelfOrder.sortIndexes(ids).forEach { (id, sortIndex) ->
+                dao.updateSortIndex(id, sortIndex)
+            }
         }
     }
 

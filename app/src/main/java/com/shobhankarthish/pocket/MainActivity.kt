@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
                     val incoming = share ?: return@LaunchedEffect
                     when (incoming) {
                         is IncomingShare.Stream -> viewModel.ingestSuspending(incoming.uri)
+                        is IncomingShare.Streams -> viewModel.ingestMany(incoming.uris)
                         is IncomingShare.PlainText -> viewModel.ingestTextSuspending(incoming.text)
                     }
                     dropShare(intent)

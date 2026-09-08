@@ -19,7 +19,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
-Unit tests for ingest, mime allow-list, and delete:
+Unit tests for ingest, mime allow-list, delete, selection order, arrange, and batch share:
 
 ```bash
 ./gradlew :app:testDebugUnitTest
@@ -27,7 +27,7 @@ Unit tests for ingest, mime allow-list, and delete:
 
 ## Share in
 
-Pocket registers as an `ACTION_SEND` target for `image/*`, `application/pdf`, and `text/plain`.
+Pocket registers as an `ACTION_SEND` target for `image/*`, `application/pdf`, and `text/plain`. It also registers `ACTION_SEND_MULTIPLE` for images and PDFs. A mixed batch can arrive as `*/*`. Pocket copies each URI it can read, skips the rest, and says how many landed if the batch is only a partial success.
 
 When a file share arrives, Pocket reads the content URI while the grant is still valid, copies the stream into `filesDir/shelf/`, then writes metadata to Room. The source URI is not stored. After that, the item survives process death from the local file plus the database row.
 
@@ -39,17 +39,26 @@ You can also tap **Add items** and pick one image or PDF with the system documen
 
 The FileProvider authority is `com.shobhankarthish.pocket.files`. Paths are limited to the `shelf/` directory under internal files.
 
-Share uses `ACTION_SEND` with `FLAG_GRANT_READ_URI_PERMISSION` and a `ClipData` URI so the receiver can read the copy. Removing an item deletes the local copy and the Room row. The file you originally shared from is left alone.
+A single file or one text/link still uses `ACTION_SEND`. Several images and/or PDFs use `ACTION_SEND_MULTIPLE` with `FLAG_GRANT_READ_URI_PERMISSION` and a `ClipData` of FileProvider URIs. Share order is the current shelf order, not tap order. Missing copies are skipped and Pocket says how many went out.
+
+Long-press a row, or use **Select items**, to select several. The top bar shows **N selected** with Share and Remove, plus Select all and Deselect. Back leaves selection.
+
+**Arrange** shows drag handles and Move up / Move down. Done or Back returns to the shelf. Order is stored as `sortIndex` on the Room row.
+
+Removing an item deletes the local copy and the Room row. The file you originally shared from is left alone.
 
 ## What this slice includes
 
 - One persistent shelf
 - Receive one image, PDF, text note, or http(s) link
+- Receive a batch of images and/or PDFs through `ACTION_SEND_MULTIPLE`
 - Copy into app-owned storage
-- Room metadata
+- Room metadata and persisted shelf order
 - DataStore flag for the How to add sheet
 - List with filename, type, size, and a full-color image thumb when the file decodes
-- FileProvider share-out
+- Multi-select share and remove, share order matching the shelf
+- Arrange with drag handles and Move up / Move down
+- FileProvider share-out, including `ACTION_SEND_MULTIPLE`
 - Safe remove
 - Light and dark, Design Freeze v1 chrome (no Dynamic Color)
 
@@ -57,5 +66,5 @@ Share uses `ACTION_SEND` with `FLAG_GRANT_READ_URI_PERMISSION` and a `ClipData` 
 
 - Multiple shelves, a shelf switcher, move, folders, tags, search
 - Floating bubble, overlays, Accessibility, clipboard monitoring
-- Mixed `SEND_MULTIPLE`, video, audio
+- Video, audio
 - OCR, AI, ZIP, cloud, accounts, ads, analytics

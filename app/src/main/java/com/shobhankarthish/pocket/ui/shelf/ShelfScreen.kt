@@ -2,33 +2,45 @@ package com.shobhankarthish.pocket.ui.shelf
 
 import android.content.Context
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,25 +59,32 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shobhankarthish.pocket.R
-import com.shobhankarthish.pocket.shelf.ItemKind
+import com.shobhankarthish.pocket.shelf.ShareOutcome
 import com.shobhankarthish.pocket.shelf.ShareOut
 import com.shobhankarthish.pocket.shelf.ShelfItem
+import com.shobhankarthish.pocket.shelf.ShelfMode
+import kotlin.math.roundToInt
 
 private val CardShape = RoundedCornerShape(16.dp)
 private val FabShape = RoundedCornerShape(16.dp)
@@ -76,8 +95,10 @@ private val IconWellShape = RoundedCornerShape(12.dp)
 @Composable
 fun ShelfScreen(viewModel: ShelfViewModel) {
     val items by viewModel.items.collectAsStateWithLifecycle()
+    val mode by viewModel.mode.collectAsStateWithLifecycle()
     val itemCount = items.size
     val empty = itemCount == 0
+    val browsing = mode is ShelfMode.Browse
     val howToAddSeen by viewModel.howToAddSeen.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -85,6 +106,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     var showAddText by remember { mutableStateOf(false) }
     var addTextDraft by remember { mutableStateOf("") }
     var pendingRemove by remember { mutableStateOf<ShelfItem?>(null) }
+    var pendingRemoveSelected by remember { mutableStateOf(false) }
     var barMenu by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(
@@ -105,6 +127,18 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         picker.launch(arrayOf("image/*", "application/pdf"))
     }
 
+    fun shareItems(chosen: List<ShelfItem>) {
+        if (chosen.isEmpty()) return
+        val pairs = chosen.map { item -> item to viewModel.fileFor(item) }
+        when (val outcome = ShareOut.sendSelection(context, pairs)) {
+            ShareOutcome.Nothing -> viewModel.note(UserMessage.ShareNone)
+            is ShareOutcome.Partial -> viewModel.note(
+                UserMessage.SharePartial(outcome.shared, outcome.skipped),
+            )
+            ShareOutcome.Sent -> Unit
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.userMessages.collect { message ->
             val text = when (message) {
@@ -112,15 +146,31 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 UserMessage.Unsupported -> context.getString(R.string.unsupported)
                 UserMessage.Failed -> context.getString(R.string.ingest_failed)
                 UserMessage.Removed -> context.getString(R.string.removed)
+                is UserMessage.AddedSome -> context.getString(
+                    R.string.added_some,
+                    message.added,
+                    message.attempted,
+                )
+                is UserMessage.RemovedSome -> context.getString(R.string.removed_some, message.count)
+                is UserMessage.SharePartial -> context.getString(
+                    R.string.share_partial,
+                    message.shared,
+                    message.shared + message.skipped,
+                )
+                UserMessage.ShareNone -> context.getString(R.string.share_none)
             }
             snackbar.showSnackbar(text)
         }
     }
 
-    LaunchedEffect(empty, howToAddSeen) {
-        if (empty && !howToAddSeen) {
+    LaunchedEffect(empty, howToAddSeen, browsing) {
+        if (empty && !howToAddSeen && browsing) {
             showHowTo = true
         }
+    }
+
+    BackHandler(enabled = !browsing) {
+        viewModel.exitMode()
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -132,6 +182,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         topBar = {
             ShelfAppBar(
                 itemCount = itemCount,
+                mode = mode,
                 menuExpanded = barMenu,
                 onMenuChange = { barMenu = it },
                 onAddText = {
@@ -142,10 +193,29 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     barMenu = false
                     showHowTo = true
                 },
+                onSelectItems = {
+                    barMenu = false
+                    viewModel.enterSelecting()
+                },
+                onArrange = {
+                    barMenu = false
+                    viewModel.enterArranging()
+                },
+                onBack = viewModel::exitMode,
+                onShareSelected = { shareItems(viewModel.selectedInShelfOrder()) },
+                onRemoveSelected = { pendingRemoveSelected = true },
+                onSelectAll = {
+                    barMenu = false
+                    viewModel.selectAll()
+                },
+                onDeselect = {
+                    barMenu = false
+                    viewModel.deselectAll()
+                },
             )
         },
         floatingActionButton = {
-            if (!empty) {
+            if (!empty && browsing) {
                 FloatingActionButton(
                     onClick = ::pickDocument,
                     shape = FabShape,
@@ -173,19 +243,20 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(items, key = { it.id }) { item ->
+                itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
                     ShelfItemCard(
                         item = item,
+                        index = index,
+                        lastIndex = items.lastIndex,
+                        mode = mode,
                         onShare = {
-                            val file = viewModel.fileFor(item)
-                            if (item.kind == ItemKind.TEXT ||
-                                item.kind == ItemKind.LINK ||
-                                file.exists()
-                            ) {
-                                ShareOut.send(context, item, file)
-                            }
+                            shareItems(listOf(item))
                         },
                         onRemove = { pendingRemove = item },
+                        onToggle = { viewModel.toggleSelected(item.id) },
+                        onLongPress = { viewModel.enterSelecting(item.id) },
+                        onMove = { delta -> viewModel.moveItem(item.id, delta) },
+                        onDragTo = { to -> viewModel.moveItemTo(index, to) },
                     )
                 }
             }
@@ -256,6 +327,30 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         )
     }
 
+    if (pendingRemoveSelected) {
+        AlertDialog(
+            onDismissRequest = { pendingRemoveSelected = false },
+            title = { Text(stringResource(R.string.remove_title)) },
+            text = { Text(stringResource(R.string.remove_selected_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.removeSelected()
+                        pendingRemoveSelected = false
+                    },
+                ) {
+                    Text(stringResource(R.string.remove))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRemoveSelected = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+        )
+    }
+
     if (showAddText) {
         AlertDialog(
             onDismissRequest = {
@@ -303,11 +398,20 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
 @Composable
 private fun ShelfAppBar(
     itemCount: Int,
+    mode: ShelfMode,
     menuExpanded: Boolean,
     onMenuChange: (Boolean) -> Unit,
     onAddText: () -> Unit,
     onHowToAdd: () -> Unit,
+    onSelectItems: () -> Unit,
+    onArrange: () -> Unit,
+    onBack: () -> Unit,
+    onShareSelected: () -> Unit,
+    onRemoveSelected: () -> Unit,
+    onSelectAll: () -> Unit,
+    onDeselect: () -> Unit,
 ) {
+    val selectedCount = (mode as? ShelfMode.Selecting)?.ids?.size ?: 0
     Column(
         Modifier
             .fillMaxWidth()
@@ -318,39 +422,33 @@ private fun ShelfAppBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .padding(start = 16.dp, end = 4.dp),
+                .padding(start = 4.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = stringResource(R.string.shelf_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f),
-            )
-            Box {
-                IconButton(onClick = { onMenuChange(true) }) {
-                    Icon(
-                        Icons.Filled.MoreVert,
-                        contentDescription = stringResource(R.string.more),
-                        tint = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { onMenuChange(false) },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.add_text)) },
-                        onClick = onAddText,
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.how_to_add)) },
-                        onClick = onHowToAdd,
-                    )
-                }
+            when (mode) {
+                ShelfMode.Browse -> BrowseBar(
+                    menuExpanded = menuExpanded,
+                    itemCount = itemCount,
+                    onMenuChange = onMenuChange,
+                    onAddText = onAddText,
+                    onSelectItems = onSelectItems,
+                    onArrange = onArrange,
+                    onHowToAdd = onHowToAdd,
+                )
+                is ShelfMode.Selecting -> SelectingBar(
+                    selectedCount = selectedCount,
+                    menuExpanded = menuExpanded,
+                    onMenuChange = onMenuChange,
+                    onBack = onBack,
+                    onShareSelected = onShareSelected,
+                    onRemoveSelected = onRemoveSelected,
+                    onSelectAll = onSelectAll,
+                    onDeselect = onDeselect,
+                )
+                ShelfMode.Arranging -> ArrangingBar(onBack = onBack)
             }
         }
-        if (itemCount > 0) {
+        if (itemCount > 0 && mode is ShelfMode.Browse) {
             Text(
                 text = pluralStringResource(R.plurals.item_count, itemCount, itemCount),
                 style = MaterialTheme.typography.bodyMedium,
@@ -358,6 +456,145 @@ private fun ShelfAppBar(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun RowScope.BrowseBar(
+    menuExpanded: Boolean,
+    itemCount: Int,
+    onMenuChange: (Boolean) -> Unit,
+    onAddText: () -> Unit,
+    onSelectItems: () -> Unit,
+    onArrange: () -> Unit,
+    onHowToAdd: () -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.shelf_title),
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier
+            .padding(start = 12.dp)
+            .weight(1f),
+    )
+    Box {
+        IconButton(onClick = { onMenuChange(true) }) {
+            Icon(
+                Icons.Filled.MoreVert,
+                contentDescription = stringResource(R.string.more),
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { onMenuChange(false) },
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.add_text)) },
+                onClick = onAddText,
+            )
+            if (itemCount > 0) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.select_items)) },
+                    onClick = onSelectItems,
+                )
+            }
+            if (itemCount > 1) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.arrange)) },
+                    onClick = onArrange,
+                )
+            }
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.how_to_add)) },
+                onClick = onHowToAdd,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.SelectingBar(
+    selectedCount: Int,
+    menuExpanded: Boolean,
+    onMenuChange: (Boolean) -> Unit,
+    onBack: () -> Unit,
+    onShareSelected: () -> Unit,
+    onRemoveSelected: () -> Unit,
+    onSelectAll: () -> Unit,
+    onDeselect: () -> Unit,
+) {
+    IconButton(onClick = onBack) {
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = stringResource(R.string.back),
+            tint = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+    Text(
+        text = pluralStringResource(R.plurals.selected_count, selectedCount, selectedCount),
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.weight(1f),
+    )
+    IconButton(onClick = onShareSelected, enabled = selectedCount > 0) {
+        Icon(
+            Icons.Filled.Share,
+            contentDescription = stringResource(R.string.share),
+            tint = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+    IconButton(onClick = onRemoveSelected, enabled = selectedCount > 0) {
+        Icon(
+            Icons.Filled.Delete,
+            contentDescription = stringResource(R.string.remove),
+            tint = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+    Box {
+        IconButton(onClick = { onMenuChange(true) }) {
+            Icon(
+                Icons.Filled.MoreVert,
+                contentDescription = stringResource(R.string.more),
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { onMenuChange(false) },
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.select_all)) },
+                onClick = onSelectAll,
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.deselect)) },
+                onClick = onDeselect,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ArrangingBar(onBack: () -> Unit) {
+    IconButton(onClick = onBack) {
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = stringResource(R.string.back),
+            tint = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+    Text(
+        text = stringResource(R.string.arrange),
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.weight(1f),
+    )
+    TextButton(onClick = onBack) {
+        Text(
+            text = stringResource(R.string.done),
+            color = MaterialTheme.colorScheme.onBackground,
+        )
     }
 }
 
@@ -426,35 +663,84 @@ private fun EmptyShelf(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ShelfItemCard(
     item: ShelfItem,
+    index: Int,
+    lastIndex: Int,
+    mode: ShelfMode,
     onShare: () -> Unit,
     onRemove: () -> Unit,
+    onToggle: () -> Unit,
+    onLongPress: () -> Unit,
+    onMove: (Int) -> Unit,
+    onDragTo: (Int) -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
+    var dragDy by remember { mutableFloatStateOf(0f) }
     val dark = isSystemInDarkTheme()
     val context = LocalContext.current
+    val density = LocalDensity.current
     val file = remember(item.id) {
         java.io.File(context.filesDir, "shelf/${item.relativePath}")
     }
+    val selecting = mode as? ShelfMode.Selecting
+    val arranging = mode is ShelfMode.Arranging
+    val selected = selecting != null && item.id in selecting.ids
+    val stroke = when {
+        selected -> MaterialTheme.colorScheme.onSurface
+        dark -> MaterialTheme.colorScheme.outline
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .zIndex(if (dragDy != 0f) 1f else 0f)
+        .offset { IntOffset(0, dragDy.roundToInt()) }
+        .clip(CardShape)
+        .background(MaterialTheme.colorScheme.surface)
+        .border(1.dp, stroke, CardShape)
+        .then(
+            when {
+                selecting != null -> Modifier.combinedClickable(onClick = onToggle, onLongClick = onToggle)
+                arranging -> Modifier
+                else -> Modifier.combinedClickable(onClick = {}, onLongClick = onLongPress)
+            },
+        )
+        .padding(12.dp)
+
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(CardShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                1.dp,
-                if (dark) {
-                    MaterialTheme.colorScheme.outline
-                } else {
-                    MaterialTheme.colorScheme.outlineVariant
-                },
-                CardShape,
-            )
-            .padding(12.dp),
+        modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (arranging) {
+            Icon(
+                painter = painterResource(R.drawable.ic_drag_handle),
+                contentDescription = stringResource(R.string.drag_handle),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(24.dp)
+                    .pointerInput(item.id, index, lastIndex) {
+                        val step = with(density) { 80.dp.toPx() }
+                        detectVerticalDragGestures(
+                            onDragEnd = { dragDy = 0f },
+                            onDragCancel = { dragDy = 0f },
+                        ) { change, dy ->
+                            change.consume()
+                            dragDy += dy
+                            val steps = (dragDy / step).toInt()
+                            if (steps != 0) {
+                                val target = (index + steps).coerceIn(0, lastIndex)
+                                if (target != index) {
+                                    onDragTo(target)
+                                    dragDy -= steps * step
+                                }
+                            }
+                        }
+                    },
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         ItemThumb(item = item, file = file)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -474,29 +760,55 @@ private fun ShelfItemCard(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Box {
-            IconButton(onClick = { menu = true }) {
-                Icon(
-                    Icons.Filled.MoreVert,
-                    contentDescription = stringResource(R.string.overflow),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        when {
+            selecting != null -> {
+                Checkbox(
+                    checked = selected,
+                    onCheckedChange = { onToggle() },
                 )
             }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.share)) },
-                    onClick = {
-                        menu = false
-                        onShare()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.remove)) },
-                    onClick = {
-                        menu = false
-                        onRemove()
-                    },
-                )
+            arranging -> {
+                IconButton(onClick = { onMove(-1) }, enabled = index > 0) {
+                    Icon(
+                        Icons.Filled.KeyboardArrowUp,
+                        contentDescription = stringResource(R.string.move_up),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = { onMove(1) }, enabled = index < lastIndex) {
+                    Icon(
+                        Icons.Filled.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.move_down),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            else -> {
+                Box {
+                    IconButton(onClick = { menu = true }) {
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.overflow),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.share)) },
+                            onClick = {
+                                menu = false
+                                onShare()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.remove)) },
+                            onClick = {
+                                menu = false
+                                onRemove()
+                            },
+                        )
+                    }
+                }
             }
         }
     }

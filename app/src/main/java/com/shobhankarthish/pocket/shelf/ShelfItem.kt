@@ -7,6 +7,7 @@ data class ShelfItem(
     val byteSize: Long,
     val relativePath: String,
     val createdAtEpochMs: Long,
+    val sortIndex: Long = 0,
 ) {
     val kind: ItemKind
         get() = ItemKind.fromMime(mimeType) ?: ItemKind.PDF

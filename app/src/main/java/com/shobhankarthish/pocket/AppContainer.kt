@@ -17,7 +17,7 @@ class AppContainer(context: Context) {
         app,
         PocketDatabase::class.java,
         "pocket.db",
-    ).build()
+    ).addMigrations(PocketDatabase.MIGRATION_1_2).build()
 
     val fileStore = ShelfFileStore(app.filesDir)
     val repository = ShelfRepository(database.shelfItemDao(), fileStore)

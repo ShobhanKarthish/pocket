@@ -12,6 +12,7 @@ data class ShelfItemEntity(
     val byteSize: Long,
     val relativePath: String,
     val createdAtEpochMs: Long,
+    val sortIndex: Long,
 ) {
     fun toDomain(): ShelfItem = ShelfItem(
         id = id,
@@ -20,6 +21,7 @@ data class ShelfItemEntity(
         byteSize = byteSize,
         relativePath = relativePath,
         createdAtEpochMs = createdAtEpochMs,
+        sortIndex = sortIndex,
     )
 
     companion object {
@@ -30,6 +32,7 @@ data class ShelfItemEntity(
             byteSize = item.byteSize,
             relativePath = item.relativePath,
             createdAtEpochMs = item.createdAtEpochMs,
+            sortIndex = item.sortIndex,
         )
     }
 }

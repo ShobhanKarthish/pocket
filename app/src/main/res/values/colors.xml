@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pocket_black">#FF171717</color>
+    <color name="pocket_white">#FFFFFFFF</color>
+    <color name="pocket_bg">#FFFAFAFA</color>
+    <color name="ic_launcher_bg">#FFFFFFFF</color>
+</resources>

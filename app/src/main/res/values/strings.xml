@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pocket</string>
+    <string name="shelf_title">Pocket Shelf</string>
+    <string name="empty_headline">A place for what\u2019s next.</string>
+    <string name="empty_body">Share images, PDFs, text, or links from another app into Pocket Shelf.</string>
+    <string name="add_items">Add items</string>
+    <string name="how_to_add">How to add</string>
+    <string name="how_to_add_title">How to add</string>
+    <string name="how_to_add_body">From Photos, Files, or another app, open Share and choose Pocket. Pocket copies the file into its own shelf while the share is still granted, so the original can go away.\n\nYou can also tap Add items and pick one image or PDF.</string>
+    <string name="how_to_add_got_it">Got it</string>
+    <string name="more">More</string>
+    <string name="share">Share</string>
+    <string name="remove">Remove</string>
+    <string name="remove_title">Remove from Pocket?</string>
+    <string name="remove_body">Pocket deletes its copy. The original file in the other app is not touched.</string>
+    <string name="cancel">Cancel</string>
+    <string name="added">Added to Pocket</string>
+    <string name="unsupported">Pocket only keeps images and PDFs right now.</string>
+    <string name="ingest_failed">Could not copy that file.</string>
+    <string name="removed">Removed</string>
+    <string name="share_chooser">Share</string>
+    <string name="thumbnail">Preview</string>
+    <string name="overflow">Item actions</string>
+</resources>

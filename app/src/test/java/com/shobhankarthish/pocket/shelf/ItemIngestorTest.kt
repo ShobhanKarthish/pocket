@@ -128,10 +128,11 @@ class ItemIngestorTest {
         val ok = ingestor.ingestText("https://example.com/notes") as IngestResult.Ok
         assertEquals(ItemKind.LINK, ok.item.kind)
         assertEquals("https://example.com/notes", ok.item.displayName)
+        assertEquals("example.com", ok.item.titleLine)
         assertEquals(TextPayload.LINK_MIME, ok.item.mimeType)
         assertEquals("item-1.url", ok.item.relativePath)
         assertEquals("https://example.com/notes", files.file("item-1.url").readText())
-        assertEquals("LINK · example.com", ok.item.metaLine)
+        assertEquals("https://example.com/notes", ok.item.metaLine)
         repo.remove(ok.item)
         assertTrue(files.listNames().isEmpty())
         assertTrue(repo.observeItems().first().isEmpty())

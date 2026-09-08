@@ -31,7 +31,7 @@ Pocket registers as an `ACTION_SEND` target for `image/*`, `application/pdf`, an
 
 When a file share arrives, Pocket reads the content URI while the grant is still valid, copies the stream into `filesDir/shelf/`, then writes metadata to Room. The source URI is not stored. After that, the item survives process death from the local file plus the database row.
 
-A `text/plain` share uses `EXTRA_TEXT`. A single http(s) URL becomes a link item whose list metadata is the hostname. Any other non-empty string becomes a text item. Both write UTF-8 into `filesDir/shelf/` and a Room row. You can also add a note from the shelf menu.
+A `text/plain` share uses `EXTRA_TEXT`. A single http(s) URL becomes a link item whose list title is the hostname and whose subtitle is the truncated URL. Any other non-empty string becomes a text item (first line + `TEXT · size`). Both write UTF-8 into `filesDir/shelf/` and a Room row. You can also add a note from the shelf menu.
 
 You can also tap **Add items** and pick one image or PDF with the system document picker. Pocket copies that file the same way. It does not take a persistable URI permission.
 

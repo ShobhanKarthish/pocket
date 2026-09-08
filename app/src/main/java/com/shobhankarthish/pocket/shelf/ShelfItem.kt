@@ -22,12 +22,15 @@ data class ShelfItem(
                 .uppercase()
         }
 
+    val titleLine: String
+        get() = when (kind) {
+            ItemKind.LINK -> TextInbound.hostOf(displayName) ?: displayName
+            else -> displayName
+        }
+
     val metaLine: String
         get() = when (kind) {
-            ItemKind.LINK -> {
-                val host = TextInbound.hostOf(displayName) ?: displayName
-                "$typeLabel \u00B7 $host"
-            }
+            ItemKind.LINK -> displayName
             else -> "$typeLabel \u00B7 ${ByteSizeFormatter.format(byteSize)}"
         }
 }

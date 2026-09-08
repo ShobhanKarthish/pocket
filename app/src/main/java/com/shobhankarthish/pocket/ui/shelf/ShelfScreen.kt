@@ -24,19 +24,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -201,18 +200,20 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     barMenu = false
                     viewModel.enterArranging()
                 },
-                onBack = viewModel::exitMode,
-                onShareSelected = { shareItems(viewModel.selectedInShelfOrder()) },
-                onRemoveSelected = { pendingRemoveSelected = true },
-                onSelectAll = {
-                    barMenu = false
-                    viewModel.selectAll()
-                },
-                onDeselect = {
-                    barMenu = false
-                    viewModel.deselectAll()
-                },
+                onClose = viewModel::exitMode,
+                onSelectAll = viewModel::selectAll,
+                onDeselect = viewModel::deselectAll,
             )
+        },
+        bottomBar = {
+            val selecting = mode as? ShelfMode.Selecting
+            if (selecting != null) {
+                SelectionBottomBar(
+                    enabled = selecting.ids.isNotEmpty(),
+                    onShare = { shareItems(viewModel.selectedInShelfOrder()) },
+                    onRemove = { pendingRemoveSelected = true },
+                )
+            }
         },
         floatingActionButton = {
             if (!empty && browsing) {
@@ -240,7 +241,12 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(inner),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                    bottom = if (browsing) 88.dp else 16.dp,
+                ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
@@ -405,9 +411,7 @@ private fun ShelfAppBar(
     onHowToAdd: () -> Unit,
     onSelectItems: () -> Unit,
     onArrange: () -> Unit,
-    onBack: () -> Unit,
-    onShareSelected: () -> Unit,
-    onRemoveSelected: () -> Unit,
+    onClose: () -> Unit,
     onSelectAll: () -> Unit,
     onDeselect: () -> Unit,
 ) {
@@ -437,15 +441,12 @@ private fun ShelfAppBar(
                 )
                 is ShelfMode.Selecting -> SelectingBar(
                     selectedCount = selectedCount,
-                    menuExpanded = menuExpanded,
-                    onMenuChange = onMenuChange,
-                    onBack = onBack,
-                    onShareSelected = onShareSelected,
-                    onRemoveSelected = onRemoveSelected,
+                    allSelected = selectedCount > 0 && selectedCount == itemCount,
+                    onClose = onClose,
                     onSelectAll = onSelectAll,
                     onDeselect = onDeselect,
                 )
-                ShelfMode.Arranging -> ArrangingBar(onBack = onBack)
+                ShelfMode.Arranging -> ArrangingBar(onDone = onClose)
             }
         }
         if (itemCount > 0 && mode is ShelfMode.Browse) {
@@ -516,18 +517,15 @@ private fun RowScope.BrowseBar(
 @Composable
 private fun RowScope.SelectingBar(
     selectedCount: Int,
-    menuExpanded: Boolean,
-    onMenuChange: (Boolean) -> Unit,
-    onBack: () -> Unit,
-    onShareSelected: () -> Unit,
-    onRemoveSelected: () -> Unit,
+    allSelected: Boolean,
+    onClose: () -> Unit,
     onSelectAll: () -> Unit,
     onDeselect: () -> Unit,
 ) {
-    IconButton(onClick = onBack) {
+    IconButton(onClick = onClose) {
         Icon(
-            Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = stringResource(R.string.back),
+            Icons.Filled.Close,
+            contentDescription = stringResource(R.string.close),
             tint = MaterialTheme.colorScheme.onBackground,
         )
     }
@@ -537,64 +535,85 @@ private fun RowScope.SelectingBar(
         color = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.weight(1f),
     )
-    IconButton(onClick = onShareSelected, enabled = selectedCount > 0) {
-        Icon(
-            Icons.Filled.Share,
-            contentDescription = stringResource(R.string.share),
-            tint = MaterialTheme.colorScheme.onBackground,
+    TextButton(onClick = if (allSelected) onDeselect else onSelectAll) {
+        Text(
+            text = stringResource(if (allSelected) R.string.deselect else R.string.select_all),
+            color = MaterialTheme.colorScheme.onBackground,
         )
-    }
-    IconButton(onClick = onRemoveSelected, enabled = selectedCount > 0) {
-        Icon(
-            Icons.Filled.Delete,
-            contentDescription = stringResource(R.string.remove),
-            tint = MaterialTheme.colorScheme.onBackground,
-        )
-    }
-    Box {
-        IconButton(onClick = { onMenuChange(true) }) {
-            Icon(
-                Icons.Filled.MoreVert,
-                contentDescription = stringResource(R.string.more),
-                tint = MaterialTheme.colorScheme.onBackground,
-            )
-        }
-        DropdownMenu(
-            expanded = menuExpanded,
-            onDismissRequest = { onMenuChange(false) },
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.select_all)) },
-                onClick = onSelectAll,
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.deselect)) },
-                onClick = onDeselect,
-            )
-        }
     }
 }
 
 @Composable
-private fun RowScope.ArrangingBar(onBack: () -> Unit) {
-    IconButton(onClick = onBack) {
-        Icon(
-            Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = stringResource(R.string.back),
-            tint = MaterialTheme.colorScheme.onBackground,
-        )
-    }
+private fun RowScope.ArrangingBar(onDone: () -> Unit) {
     Text(
         text = stringResource(R.string.arrange),
         style = MaterialTheme.typography.titleLarge,
         color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.weight(1f),
+        modifier = Modifier
+            .padding(start = 12.dp)
+            .weight(1f),
     )
-    TextButton(onClick = onBack) {
+    TextButton(onClick = onDone) {
         Text(
             text = stringResource(R.string.done),
             color = MaterialTheme.colorScheme.onBackground,
         )
+    }
+}
+
+@Composable
+private fun SelectionBottomBar(
+    enabled: Boolean,
+    onShare: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val dark = isSystemInDarkTheme()
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .navigationBarsPadding(),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(
+                    if (dark) {
+                        MaterialTheme.colorScheme.outline
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant
+                    },
+                ),
+        )
+        val actionColor = MaterialTheme.colorScheme.onBackground.copy(alpha = if (enabled) 1f else 0.38f)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            TextButton(onClick = onShare, enabled = enabled) {
+                Text(
+                    text = stringResource(R.string.share),
+                    color = actionColor,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            Text(
+                text = "\u00B7",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+            TextButton(onClick = onRemove, enabled = enabled) {
+                Text(
+                    text = stringResource(R.string.remove),
+                    color = actionColor,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
     }
 }
 

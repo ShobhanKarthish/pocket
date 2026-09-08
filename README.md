@@ -41,9 +41,9 @@ The FileProvider authority is `com.shobhankarthish.pocket.files`. Paths are limi
 
 A single file or one text/link still uses `ACTION_SEND`. Several images and/or PDFs use `ACTION_SEND_MULTIPLE` with `FLAG_GRANT_READ_URI_PERMISSION` and a `ClipData` of FileProvider URIs. Share order is the current shelf order, not tap order. Missing copies are skipped and Pocket says how many went out.
 
-Long-press a row, or use **Select items**, to select several. The top bar shows **N selected** with Share and Remove, plus Select all and Deselect. Back leaves selection.
+Long-press a row, or use **Select items**, to select several. The top bar shows **N selected** with Close and Select all. Share and Remove sit in the bottom bar. There is no Move on a single shelf. Close leaves selection.
 
-**Arrange** shows drag handles and Move up / Move down. Done or Back returns to the shelf. Order is stored as `sortIndex` on the Room row.
+**Arrange** shows drag handles and Done. Move up / Move down stays on each row for access. Order is stored as `sortIndex` on the Room row.
 
 Removing an item deletes the local copy and the Room row. The file you originally shared from is left alone.
 

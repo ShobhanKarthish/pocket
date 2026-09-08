@@ -10,6 +10,8 @@ object DisplayNames {
     fun fallback(kind: ItemKind): String = when (kind) {
         ItemKind.IMAGE -> "image.jpg"
         ItemKind.PDF -> "document.pdf"
+        ItemKind.TEXT -> "note.txt"
+        ItemKind.LINK -> "link.url"
     }
 
     fun extensionOf(name: String, kind: ItemKind): String {
@@ -20,6 +22,8 @@ object DisplayNames {
         return when (kind) {
             ItemKind.IMAGE -> "jpg"
             ItemKind.PDF -> "pdf"
+            ItemKind.TEXT -> "txt"
+            ItemKind.LINK -> "url"
         }
     }
 }

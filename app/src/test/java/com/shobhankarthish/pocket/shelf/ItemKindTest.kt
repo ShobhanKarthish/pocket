@@ -26,8 +26,14 @@ class ItemKindTest {
     }
 
     @Test
-    fun textIsRejected() {
-        assertNull(ItemKind.fromMime("text/plain"))
+    fun plainTextIsText() {
+        assertEquals(ItemKind.TEXT, ItemKind.fromMime("text/plain"))
+    }
+
+    @Test
+    fun uriMimeIsLink() {
+        assertEquals(ItemKind.LINK, ItemKind.fromMime("text/x-uri"))
+        assertEquals(ItemKind.LINK, ItemKind.fromMime("text/uri-list"))
     }
 
     @Test

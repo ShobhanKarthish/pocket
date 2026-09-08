@@ -1,7 +1,6 @@
 package com.shobhankarthish.pocket.ui.shelf
 
 import android.content.Context
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -40,6 +39,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -62,7 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shobhankarthish.pocket.R
-import com.shobhankarthish.pocket.shelf.ByteSizeFormatter
+import com.shobhankarthish.pocket.shelf.ItemKind
 import com.shobhankarthish.pocket.shelf.ShareOut
 import com.shobhankarthish.pocket.shelf.ShelfItem
 
@@ -81,6 +81,8 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     var showHowTo by remember { mutableStateOf(false) }
+    var showAddText by remember { mutableStateOf(false) }
+    var addTextDraft by remember { mutableStateOf("") }
     var pendingRemove by remember { mutableStateOf<ShelfItem?>(null) }
     var barMenu by remember { mutableStateOf(false) }
 
@@ -131,6 +133,10 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 itemCount = itemCount,
                 menuExpanded = barMenu,
                 onMenuChange = { barMenu = it },
+                onAddText = {
+                    barMenu = false
+                    showAddText = true
+                },
                 onHowToAdd = {
                     barMenu = false
                     showHowTo = true
@@ -171,7 +177,10 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                         item = item,
                         onShare = {
                             val file = viewModel.fileFor(item)
-                            if (file.exists()) {
+                            if (item.kind == ItemKind.TEXT ||
+                                item.kind == ItemKind.LINK ||
+                                file.exists()
+                            ) {
                                 ShareOut.send(context, item, file)
                             }
                         },
@@ -245,6 +254,49 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             containerColor = MaterialTheme.colorScheme.surface,
         )
     }
+
+    if (showAddText) {
+        AlertDialog(
+            onDismissRequest = {
+                showAddText = false
+                addTextDraft = ""
+            },
+            title = { Text(stringResource(R.string.add_text_title)) },
+            text = {
+                OutlinedTextField(
+                    value = addTextDraft,
+                    onValueChange = { addTextDraft = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(R.string.add_text_hint)) },
+                    minLines = 3,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val draft = addTextDraft
+                        showAddText = false
+                        addTextDraft = ""
+                        viewModel.ingestText(draft)
+                    },
+                    enabled = addTextDraft.isNotBlank(),
+                ) {
+                    Text(stringResource(R.string.add_text_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAddText = false
+                        addTextDraft = ""
+                    },
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+        )
+    }
 }
 
 @Composable
@@ -252,6 +304,7 @@ private fun ShelfAppBar(
     itemCount: Int,
     menuExpanded: Boolean,
     onMenuChange: (Boolean) -> Unit,
+    onAddText: () -> Unit,
     onHowToAdd: () -> Unit,
 ) {
     Column(
@@ -285,6 +338,10 @@ private fun ShelfAppBar(
                     expanded = menuExpanded,
                     onDismissRequest = { onMenuChange(false) },
                 ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_text)) },
+                        onClick = onAddText,
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.how_to_add)) },
                         onClick = onHowToAdd,
@@ -409,7 +466,7 @@ private fun ShelfItemCard(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = "${item.typeLabel} \u00B7 ${ByteSizeFormatter.format(item.byteSize)}",
+                text = item.metaLine,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

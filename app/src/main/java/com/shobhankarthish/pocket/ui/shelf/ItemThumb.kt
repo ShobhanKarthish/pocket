@@ -84,6 +84,14 @@ fun ItemThumb(
                 )
             }
         }
+        ItemKind.TEXT -> GlyphThumb(
+            modifier = shapeModifier,
+            painter = painterResource(R.drawable.ic_text),
+        )
+        ItemKind.LINK -> GlyphThumb(
+            modifier = shapeModifier,
+            painter = painterResource(R.drawable.ic_link),
+        )
     }
 }
 

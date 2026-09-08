@@ -55,15 +55,30 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
             val inbound = withContext(Dispatchers.IO) {
                 getApplication<Application>().contentResolver.toInboundFile(uri)
             }
-            when (ingestor.ingest(inbound)) {
-                is IngestResult.Ok -> UserMessage.Added
-                IngestResult.Unsupported -> UserMessage.Unsupported
-                IngestResult.Failed -> UserMessage.Failed
-            }
+            toUserMessage(ingestor.ingest(inbound))
         } catch (_: Exception) {
             UserMessage.Failed
         }
         messages.send(message)
+    }
+
+    fun ingestText(text: String) {
+        viewModelScope.launch { ingestTextSuspending(text) }
+    }
+
+    suspend fun ingestTextSuspending(text: String) {
+        val message = try {
+            toUserMessage(ingestor.ingestText(text))
+        } catch (_: Exception) {
+            UserMessage.Failed
+        }
+        messages.send(message)
+    }
+
+    private fun toUserMessage(result: IngestResult): UserMessage = when (result) {
+        is IngestResult.Ok -> UserMessage.Added
+        IngestResult.Unsupported -> UserMessage.Unsupported
+        IngestResult.Failed -> UserMessage.Failed
     }
 
     fun remove(item: ShelfItem) {

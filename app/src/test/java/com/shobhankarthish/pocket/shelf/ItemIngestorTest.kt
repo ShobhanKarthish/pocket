@@ -52,8 +52,8 @@ class ItemIngestorTest {
         val (ingestor, _, files) = harness()
         val result = ingestor.ingest(
             InboundFile(
-                mimeType = "text/plain",
-                displayName = "note.txt",
+                mimeType = "video/mp4",
+                displayName = "clip.mp4",
                 openStream = { ByteArrayInputStream("hi".toByteArray()) },
             ),
         )
@@ -106,5 +106,41 @@ class ItemIngestorTest {
         repo.reconcile()
         assertTrue(files.listNames().isEmpty())
         assertTrue(repo.observeItems().first().isEmpty())
+    }
+
+    @Test
+    fun ingestTextPersistsProse() = runTest {
+        val (ingestor, repo, files) = harness()
+        val ok = ingestor.ingestText("Pack the bag\nDon't forget socks") as IngestResult.Ok
+        assertEquals(ItemKind.TEXT, ok.item.kind)
+        assertEquals("Pack the bag", ok.item.displayName)
+        assertEquals(TextPayload.TEXT_MIME, ok.item.mimeType)
+        assertEquals("item-1.txt", ok.item.relativePath)
+        assertEquals("Pack the bag\nDon't forget socks", files.file("item-1.txt").readText())
+        assertEquals("TEXT · 31 B", ok.item.metaLine)
+        repo.reconcile()
+        assertEquals(1, repo.observeItems().first().size)
+    }
+
+    @Test
+    fun ingestTextPersistsLink() = runTest {
+        val (ingestor, repo, files) = harness()
+        val ok = ingestor.ingestText("https://example.com/notes") as IngestResult.Ok
+        assertEquals(ItemKind.LINK, ok.item.kind)
+        assertEquals("https://example.com/notes", ok.item.displayName)
+        assertEquals(TextPayload.LINK_MIME, ok.item.mimeType)
+        assertEquals("item-1.url", ok.item.relativePath)
+        assertEquals("https://example.com/notes", files.file("item-1.url").readText())
+        assertEquals("LINK · example.com", ok.item.metaLine)
+        repo.remove(ok.item)
+        assertTrue(files.listNames().isEmpty())
+        assertTrue(repo.observeItems().first().isEmpty())
+    }
+
+    @Test
+    fun ingestBlankTextFails() = runTest {
+        val (ingestor, _, files) = harness()
+        assertEquals(IngestResult.Failed, ingestor.ingestText("   "))
+        assertTrue(files.listNames().isEmpty())
     }
 }

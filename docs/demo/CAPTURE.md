@@ -11,13 +11,15 @@ Assets in this folder were taken from the **running debug app** on an emulator, 
 | `populated-light.png` | Two items (PDF + PNG thumb), light, 1 dp `#E4E4E4` card stroke, **2 items** |
 | `populated-dark.png` | Same list, dark (earlier take) |
 | `add-list-share-remove.mp4` | Empty light → **in-app document picker** add PNG → picker add PDF → both rows → system Share sheet → Remove PDF → Remove last PNG → empty chrome again, **no** stale “1 item” |
+| `text-link-light.png` | Light list after `ACTION_SEND text/plain`: TEXT row + LINK row (hostname metadata) mixed with PDF + PNG, **4 items** |
+| `text-link-dark.png` | Same four rows, dark |
 
 `add-list-share-remove.mp4` is **58 s**, 720×1280, H.264, 12 fps.
 
 ## Device
 
 - AVD `pocket_gapis30`: 720×1280, **API 30**, `google_apis` x86_64
-- Debug APK: `:app:assembleDebug` at `cfe66df` (`Fix picker ingest and stale empty-shelf item count.`)
+- Debug APK: `:app:assembleDebug` on the text+link slice (`text/plain` share-in)
 - Package: `com.shobhankarthish.pocket`
 - Theme: `adb shell cmd uimode night no`
 - Accel: **KVM** (`-accel on -gpu swiftshader_indirect`). `/dev/kvm` is usable after `chmod 666`.
@@ -30,6 +32,15 @@ Adds in the mp4 go through the **in-app `OpenDocument` picker** (DocumentsUI Rec
 Share-out uses the same shelf file (`ShareOut` / system chooser: Pocket, Bluetooth, Gmail, Messages). Share-in (`ACTION_SEND`) uses the same `ingestSuspending` path as the picker; this video does not restage a foreign `ACTION_SEND`.
 
 How-to sheet was already dismissed (`how_to_add_seen`) so the empty launch is the empty chrome, not the sheet.
+
+## Text and link stills
+
+`text-link-light.png` and `text-link-dark.png` are emulator-console screenshots after two `ACTION_SEND` `text/plain` extras on top of the existing PDF + PNG:
+
+- `Pack the bag. Do not forget socks.` → TEXT row, `TEXT · 34 B`, `files/shelf/<id>.txt`
+- `https://example.com/notes` → LINK row, `LINK · example.com`, `files/shelf/<id>.url`
+
+Share-out of the text row opened the system sheet with that prose as `EXTRA_TEXT` (Copy / Pocket / Bluetooth / Gmail / Messages). Remove of that row left **3 items** and deleted the `.txt`.
 
 ## Video assembly
 

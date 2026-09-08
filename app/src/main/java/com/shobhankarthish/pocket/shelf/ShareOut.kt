@@ -11,6 +11,16 @@ object ShareOut {
     fun authority(context: Context): String = "${context.packageName}.files"
 
     fun send(context: Context, item: ShelfItem, file: File) {
+        if (item.kind == ItemKind.TEXT || item.kind == ItemKind.LINK) {
+            val body = if (file.exists()) file.readText() else item.displayName
+            val share = Intent(Intent.ACTION_SEND).apply {
+                type = TextPayload.TEXT_MIME
+                putExtra(Intent.EXTRA_TEXT, body)
+                putExtra(Intent.EXTRA_SUBJECT, item.displayName)
+            }
+            context.startActivity(Intent.createChooser(share, context.getString(R.string.share_chooser)))
+            return
+        }
         val uri = FileProvider.getUriForFile(context, authority(context), file)
         val share = Intent(Intent.ACTION_SEND).apply {
             type = item.mimeType

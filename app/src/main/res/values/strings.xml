@@ -7,7 +7,7 @@
     <string name="add_items">Add items</string>
     <string name="how_to_add">How to add</string>
     <string name="how_to_add_title">How to add</string>
-    <string name="how_to_add_body">From Photos, Files, or another app, open Share and choose Pocket. Pocket copies the file into its own shelf while the share is still granted, so the original can go away.\n\nYou can also tap Add items and pick one image or PDF.</string>
+    <string name="how_to_add_body">From Photos, Files, or another app, open Share and choose Pocket. Pocket copies the file, text, or link into its own shelf while the share is still granted, so the original can go away.\n\nYou can also tap Add items and pick one image or PDF, or add a note from the menu.</string>
     <string name="how_to_add_got_it">Got it</string>
     <string name="more">More</string>
     <string name="share">Share</string>
@@ -16,7 +16,11 @@
     <string name="remove_body">Pocket deletes its copy. The original file in the other app is not touched.</string>
     <string name="cancel">Cancel</string>
     <string name="added">Added to Pocket</string>
-    <string name="unsupported">Pocket only keeps images and PDFs right now.</string>
+    <string name="add_text">Add text</string>
+    <string name="add_text_title">Add text or a link</string>
+    <string name="add_text_hint">Write a note, or paste one http(s) URL</string>
+    <string name="add_text_confirm">Add</string>
+    <string name="unsupported">Pocket only keeps images, PDFs, text, and links right now.</string>
     <string name="ingest_failed">Could not copy that file.</string>
     <string name="removed">Removed</string>
     <string name="share_chooser">Share</string>

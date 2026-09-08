@@ -2,7 +2,7 @@
 
 Collect now. Share when you're ready.
 
-Pocket is a temporary local tray on Android. Share an image or PDF from another app. Pocket copies the bytes into its own storage, lists the item, and lets you share that copy out later. The original file is never modified.
+Pocket is a temporary local tray on Android. Share an image, PDF, note, or http(s) link from another app. Pocket copies the payload into its own storage, lists the item, and lets you share that copy out later. The original file is never modified.
 
 This build is one shelf, on-device only. There is no account, no server, and the app does not request the `INTERNET` permission.
 
@@ -27,9 +27,11 @@ Unit tests for ingest, mime allow-list, and delete:
 
 ## Share in
 
-Pocket registers as an `ACTION_SEND` target for `image/*` and `application/pdf`.
+Pocket registers as an `ACTION_SEND` target for `image/*`, `application/pdf`, and `text/plain`.
 
-When a share arrives, Pocket reads the content URI while the grant is still valid, copies the stream into `filesDir/shelf/`, then writes metadata to Room. The source URI is not stored. After that, the item survives process death from the local file plus the database row.
+When a file share arrives, Pocket reads the content URI while the grant is still valid, copies the stream into `filesDir/shelf/`, then writes metadata to Room. The source URI is not stored. After that, the item survives process death from the local file plus the database row.
+
+A `text/plain` share uses `EXTRA_TEXT`. A single http(s) URL becomes a link item whose list metadata is the hostname. Any other non-empty string becomes a text item. Both write UTF-8 into `filesDir/shelf/` and a Room row. You can also add a note from the shelf menu.
 
 You can also tap **Add items** and pick one image or PDF with the system document picker. Pocket copies that file the same way. It does not take a persistable URI permission.
 
@@ -42,7 +44,7 @@ Share uses `ACTION_SEND` with `FLAG_GRANT_READ_URI_PERMISSION` and a `ClipData` 
 ## What this slice includes
 
 - One persistent shelf
-- Receive one image or one PDF
+- Receive one image, PDF, text note, or http(s) link
 - Copy into app-owned storage
 - Room metadata
 - DataStore flag for the How to add sheet
@@ -55,5 +57,5 @@ Share uses `ACTION_SEND` with `FLAG_GRANT_READ_URI_PERMISSION` and a `ClipData` 
 
 - Multiple shelves, a shelf switcher, move, folders, tags, search
 - Floating bubble, overlays, Accessibility, clipboard monitoring
-- Text and link capture, mixed `SEND_MULTIPLE`, video, audio
+- Mixed `SEND_MULTIPLE`, video, audio
 - OCR, AI, ZIP, cloud, accounts, ads, analytics

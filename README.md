@@ -45,11 +45,11 @@ Text and links share as one `text/plain` body in shelf order. Files plus text or
 
 Tap a row to open it. Images fill the screen and pinch to zoom, with **Share · Remove**. Text is **Copy · Share**. A link is **Open · Copy · Share**. A PDF opens in another app if one is installed. If none is, Pocket says so and Share stays.
 
-Long-press a row, or use **Select items**, to select several. The top bar shows **N selected** with Close and Select all. Share and Remove sit in the bottom bar. There is no Move on a single shelf. Close leaves selection.
+Long-press a row, or use **Select items**, to select several. The top bar shows **N selected** with Close and Select all. Share and Remove sit in the bottom bar. There is no Move on a single shelf. Close leaves selection. The FAB hides while selecting.
 
 **Arrange** shows drag handles and Done. Move up / Move down stays on each row for access. Order is stored as `sortIndex` on the Room row.
 
-Removing an item deletes the local copy and the Room row. The file you originally shared from is left alone.
+Removing an item fades the row, then Pocket deletes its copy after a short **Undo** snackbar. The file you originally shared from is left alone. Motion stays in the 120–250 ms freeze window and turns off when animator duration is 0.
 
 ## What this slice includes
 
@@ -65,8 +65,8 @@ Removing an item deletes the local copy and the Room row. The file you originall
 - Item detail: image preview, text and link read, PDF handoff
 - Mixed share choice when files and text are selected together
 - FileProvider share-out, including `ACTION_SEND_MULTIPLE`
-- Safe remove
-- Light and dark, Design Freeze v1 chrome (no Dynamic Color)
+- Safe remove with Undo
+- Freeze motion (120–250 ms, reduce-motion, no Dynamic Color)
 
 ## What this slice leaves out
 

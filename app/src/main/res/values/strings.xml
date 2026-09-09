@@ -26,6 +26,7 @@
     <string name="ingest_failed">Could not copy that file.</string>
     <string name="removed">Removed</string>
     <string name="removed_some">Removed %d</string>
+    <string name="undo">Undo</string>
     <string name="share_chooser">Share</string>
     <string name="share_partial">Shared %1$d of %2$d. Some files were missing.</string>
     <string name="share_none">Those items could not be shared.</string>

@@ -15,12 +15,14 @@ import com.shobhankarthish.pocket.shelf.ShelfOrder
 import com.shobhankarthish.pocket.shelf.ShelfRepository
 import com.shobhankarthish.pocket.shelf.prefs.HowToAddPrefs
 import com.shobhankarthish.pocket.shelf.toInboundFile
+import com.shobhankarthish.pocket.shelf.RemovalHold
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -33,7 +35,15 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
     private val ingestor: ItemIngestor = container.ingestor
     private val howToAddPrefs: HowToAddPrefs = container.howToAddPrefs
 
-    val items: StateFlow<List<ShelfItem>> = repository.observeItems().stateIn(
+    private val hold = MutableStateFlow<RemovalHold?>(null)
+    private var nextRemovalToken = 1
+
+    val items: StateFlow<List<ShelfItem>> = combine(
+        repository.observeItems(),
+        hold,
+    ) { all, pending ->
+        pending?.visible(all) ?: all
+    }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
         emptyList(),
@@ -99,21 +109,39 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun remove(item: ShelfItem) {
-        viewModelScope.launch {
-            repository.remove(item)
-            messages.send(UserMessage.Removed)
-        }
+        requestRemove(listOf(item))
     }
 
     fun removeSelected() {
         val selecting = _mode.value as? ShelfMode.Selecting ?: return
-        val doomed = Selection.inShelfOrder(items.value, selecting.ids)
-        if (doomed.isEmpty()) return
+        requestRemove(Selection.inShelfOrder(items.value, selecting.ids))
+    }
+
+    fun undoRemoval(token: Int) {
+        if (hold.value?.matches(token) == true) hold.value = null
+    }
+
+    fun commitRemoval(token: Int) {
+        val current = hold.value ?: return
+        if (!current.matches(token)) return
         viewModelScope.launch {
-            repository.remove(doomed)
-            _mode.value = ShelfMode.Browse
+            repository.remove(current.items)
+            if (hold.value?.matches(token) == true) hold.value = null
+        }
+    }
+
+    private fun requestRemove(targets: List<ShelfItem>) {
+        if (targets.isEmpty()) return
+        val token = nextRemovalToken++
+        hold.value = RemovalHold(token, targets)
+        if (_mode.value is ShelfMode.Selecting) _mode.value = ShelfMode.Browse
+        viewModelScope.launch {
             messages.send(
-                if (doomed.size == 1) UserMessage.Removed else UserMessage.RemovedSome(doomed.size),
+                if (targets.size == 1) {
+                    UserMessage.Removed(token)
+                } else {
+                    UserMessage.RemovedSome(token, targets.size)
+                },
             )
         }
     }
@@ -175,9 +203,9 @@ sealed interface UserMessage {
     data object Added : UserMessage
     data object Unsupported : UserMessage
     data object Failed : UserMessage
-    data object Removed : UserMessage
+    data class Removed(val token: Int) : UserMessage
     data class AddedSome(val added: Int, val attempted: Int) : UserMessage
-    data class RemovedSome(val count: Int) : UserMessage
+    data class RemovedSome(val token: Int, val count: Int) : UserMessage
     data class SharePartial(val shared: Int, val skipped: Int) : UserMessage
     data object ShareNone : UserMessage
     data object ShareMixed : UserMessage

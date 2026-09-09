@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -301,11 +300,6 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     onShare = { shareItems(viewModel.selectedInShelfOrder()) },
                     onRemove = { pendingRemoveSelected = true },
                 )
-            } else if (empty) {
-                EmptyShelfDock(
-                    onAdd = ::openAddSheet,
-                    onHowToAdd = { showHowTo = true },
-                )
             }
         },
     ) { inner ->
@@ -361,6 +355,14 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 }
             }
         }
+    }
+
+    if (empty && detailItem == null && !showSettings) {
+        EmptyShelfDock(
+            modifier = Modifier.align(Alignment.BottomStart),
+            onAdd = ::openAddSheet,
+            onHowToAdd = { showHowTo = true },
+        )
     }
 
     if (showHowTo) {
@@ -949,18 +951,19 @@ private fun EmptyShelf(
 
 @Composable
 private fun EmptyShelfDock(
+    modifier: Modifier,
     onAdd: () -> Unit,
     onHowToAdd: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .navigationBarsPadding()
             .padding(
                 start = 16.dp,
                 end = 16.dp,
-                bottom = Astra.EmptyDockAboveSafeDp.dp,
+                bottom = (Astra.EmptyDockAboveSafeDp - Astra.EmptyNavIconInsetDp).dp,
             ),
         horizontalAlignment = Alignment.Start,
     ) {
@@ -985,13 +988,18 @@ private fun EmptyShelfDock(
         }
         TextButton(
             onClick = onHowToAdd,
-            modifier = Modifier.heightIn(min = Astra.HowToAddMinDp.dp),
-            contentPadding = PaddingValues(horizontal = 0.dp),
+            modifier = Modifier.height(Astra.HowToAddMinDp.dp),
+            contentPadding = PaddingValues(0.dp),
         ) {
-            Text(
-                text = stringResource(R.string.how_to_add),
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomStart,
+            ) {
+                Text(
+                    text = stringResource(R.string.how_to_add),
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
         }
     }
 }

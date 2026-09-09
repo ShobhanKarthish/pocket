@@ -8,6 +8,8 @@ object Astra {
     const val EmptyAddWidthDp = 136
     const val EmptyAddHeightDp = 48
     const val EmptyDockAboveSafeDp = 28
+    /** 3-button icons sit below the 48 dp nav inset top; PNG gap is to the icons. */
+    const val EmptyNavIconInsetDp = 22
     const val RadiusDp = 12
     const val HowToAddMinDp = 48
     const val SelectionOutlineDp = 2

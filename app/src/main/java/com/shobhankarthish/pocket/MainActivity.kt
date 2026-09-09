@@ -1,6 +1,8 @@
 package com.shobhankarthish.pocket
 
 import android.content.Intent
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -62,10 +64,13 @@ class MainActivity : ComponentActivity() {
                 detectDarkMode = { _ -> dark },
             ),
             navigationBarStyle = SystemBarStyle.auto(
-                LightBackground.toArgb(),
-                DarkBackground.toArgb(),
+                Color.TRANSPARENT,
+                Color.TRANSPARENT,
                 detectDarkMode = { _ -> dark },
             ),
         )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
     }
 }

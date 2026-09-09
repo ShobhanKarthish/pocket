@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shobhankarthish.pocket.R
 import com.shobhankarthish.pocket.shelf.ItemKind
+import com.shobhankarthish.pocket.ui.theme.Astra
 import com.shobhankarthish.pocket.shelf.ShareOut
 import com.shobhankarthish.pocket.shelf.ShelfItem
 import kotlinx.coroutines.Dispatchers
@@ -116,7 +118,7 @@ private fun DetailBar(title: String, onClose: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .height(56.dp)
+            .heightIn(min = Astra.HeaderMinDp.dp)
             .padding(start = 4.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -33,7 +34,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -45,7 +45,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -77,13 +77,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shobhankarthish.pocket.BuildConfig
 import com.shobhankarthish.pocket.R
 import com.shobhankarthish.pocket.shelf.ShareDecision
 import com.shobhankarthish.pocket.shelf.ShareOutcome
@@ -96,13 +96,12 @@ import com.shobhankarthish.pocket.ui.motion.MotionMs
 import com.shobhankarthish.pocket.ui.motion.PocketMotion
 import com.shobhankarthish.pocket.ui.motion.lightHaptic
 import com.shobhankarthish.pocket.ui.motion.rememberPocketMotion
+import com.shobhankarthish.pocket.ui.theme.Astra
 import java.io.File
 import kotlin.math.roundToInt
 
-private val CardShape = RoundedCornerShape(16.dp)
-private val FabShape = RoundedCornerShape(16.dp)
-private val PillShape = RoundedCornerShape(50)
-private val IconWellShape = RoundedCornerShape(12.dp)
+private val ControlShape = RoundedCornerShape(Astra.RadiusDp.dp)
+private val SelectionShape = RoundedCornerShape(Astra.RadiusDp.dp)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -118,12 +117,14 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     val motion = rememberPocketMotion()
     var knownIds by remember { mutableStateOf<Set<String>?>(null) }
     var showHowTo by remember { mutableStateOf(false) }
+    var showAddSheet by remember { mutableStateOf(false) }
     var showAddText by remember { mutableStateOf(false) }
     var addTextDraft by remember { mutableStateOf("") }
     var pendingRemove by remember { mutableStateOf<ShelfItem?>(null) }
     var pendingRemoveSelected by remember { mutableStateOf(false) }
     var barMenu by remember { mutableStateOf(false) }
     var detailItem by remember { mutableStateOf<ShelfItem?>(null) }
+    var showSettings by remember { mutableStateOf(false) }
     var pendingChoice by remember { mutableStateOf<PendingChoice?>(null) }
 
     val picker = rememberLauncherForActivityResult(
@@ -142,6 +143,10 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
 
     fun pickDocument() {
         picker.launch(arrayOf("image/*", "application/pdf"))
+    }
+
+    fun openAddSheet() {
+        showAddSheet = true
     }
 
     fun launchShare(decision: ShareDecision, pairs: List<Pair<ShelfItem, File>>) {
@@ -238,32 +243,33 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         }
     }
 
-    BackHandler(enabled = detailItem != null || !browsing) {
-        if (detailItem != null) {
-            detailItem = null
-        } else {
-            viewModel.exitMode()
+    BackHandler(enabled = showSettings || detailItem != null || !browsing) {
+        when {
+            showSettings -> showSettings = false
+            detailItem != null -> detailItem = null
+            else -> viewModel.exitMode()
         }
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val howToSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val addSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val addTextSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val choiceSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Box(Modifier.fillMaxSize()) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { if (detailItem == null) SnackbarHost(snackbar) },
+        snackbarHost = {
+            if (detailItem == null && !showSettings) SnackbarHost(snackbar)
+        },
         topBar = {
             ShelfAppBar(
                 itemCount = itemCount,
                 mode = mode,
                 menuExpanded = barMenu,
                 onMenuChange = { barMenu = it },
-                onAddText = {
-                    barMenu = false
-                    showAddText = true
-                },
+                onAdd = ::openAddSheet,
                 onHowToAdd = {
                     barMenu = false
                     showHowTo = true
@@ -275,6 +281,10 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 onArrange = {
                     barMenu = false
                     viewModel.enterArranging()
+                },
+                onSettings = {
+                    barMenu = false
+                    showSettings = true
                 },
                 onClose = viewModel::exitMode,
                 onSelectAll = viewModel::selectAll,
@@ -291,25 +301,13 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 )
             }
         },
-        floatingActionButton = {
-            if (!empty && browsing && detailItem == null) {
-                FloatingActionButton(
-                    onClick = ::pickDocument,
-                    shape = FabShape,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_items))
-                }
-            }
-        },
     ) { inner ->
         if (empty) {
             EmptyShelf(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(inner),
-                onAdd = ::pickDocument,
+                onAdd = ::openAddSheet,
                 onHowToAdd = { showHowTo = true },
             )
         } else {
@@ -321,9 +319,8 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     start = 16.dp,
                     end = 16.dp,
                     top = 8.dp,
-                    bottom = if (browsing) 88.dp else 16.dp,
+                    bottom = 16.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
                     val animateEnter = remember(item.id) {
@@ -339,7 +336,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                             placementSpec = motion.spec(MotionMs.Add),
                         ),
                     ) {
-                        ShelfItemCard(
+                        ShelfItemRow(
                             item = item,
                             index = index,
                             lastIndex = items.lastIndex,
@@ -367,10 +364,15 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 showHowTo = false
                 viewModel.markHowToAddSeen()
             },
-            sheetState = sheetState,
+            sheetState = howToSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = null,
         ) {
-            Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+            Column(
+                Modifier
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+            ) {
                 Text(
                     text = stringResource(R.string.how_to_add_title),
                     style = MaterialTheme.typography.titleLarge,
@@ -387,8 +389,10 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                         showHowTo = false
                         viewModel.markHowToAddSeen()
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = PillShape,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Astra.HowToAddMinDp.dp),
+                    shape = ControlShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -396,7 +400,38 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 ) {
                     Text(stringResource(R.string.how_to_add_got_it))
                 }
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+
+    if (showAddSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddSheet = false },
+            sheetState = addSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = null,
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+            ) {
+                QuietSheetRow(
+                    label = stringResource(R.string.add_image_or_pdf),
+                    onClick = {
+                        showAddSheet = false
+                        pickDocument()
+                    },
+                )
+                QuietSheetRow(
+                    label = stringResource(R.string.add_text_or_link),
+                    onClick = {
+                        showAddSheet = false
+                        showAddText = true
+                    },
+                )
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
@@ -426,46 +461,62 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     }
 
     if (showAddText) {
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = {
                 showAddText = false
                 addTextDraft = ""
             },
-            title = { Text(stringResource(R.string.add_text_title)) },
-            text = {
+            sheetState = addTextSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = null,
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.add_text_title),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = addTextDraft,
                     onValueChange = { addTextDraft = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(stringResource(R.string.add_text_hint)) },
                     minLines = 3,
+                    shape = ControlShape,
                 )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val draft = addTextDraft
-                        showAddText = false
-                        addTextDraft = ""
-                        viewModel.ingestText(draft)
-                    },
-                    enabled = addTextDraft.isNotBlank(),
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.add_text_confirm))
+                    TextButton(
+                        onClick = {
+                            showAddText = false
+                            addTextDraft = ""
+                        },
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                    TextButton(
+                        onClick = {
+                            val draft = addTextDraft
+                            showAddText = false
+                            addTextDraft = ""
+                            viewModel.ingestText(draft)
+                        },
+                        enabled = addTextDraft.isNotBlank(),
+                    ) {
+                        Text(stringResource(R.string.add_text_confirm))
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showAddText = false
-                        addTextDraft = ""
-                    },
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-        )
+            }
+        }
     }
 
     pendingChoice?.let { choice ->
@@ -513,6 +564,18 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         )
     }
 
+    if (showSettings) {
+        SettingsScreen(
+            versionName = BuildConfig.VERSION_NAME,
+            onClose = { showSettings = false },
+            onHowToAdd = { showHowTo = true },
+        )
+        SnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+
     pendingRemove?.let { item ->
         AlertDialog(
             onDismissRequest = { pendingRemove = null },
@@ -546,60 +609,63 @@ private data class PendingChoice(
 )
 
 @Composable
+private fun QuietSheetRow(label: String, onClick: () -> Unit) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+    )
+}
+
+@Composable
 private fun ShelfAppBar(
     itemCount: Int,
     mode: ShelfMode,
     menuExpanded: Boolean,
     onMenuChange: (Boolean) -> Unit,
-    onAddText: () -> Unit,
+    onAdd: () -> Unit,
     onHowToAdd: () -> Unit,
     onSelectItems: () -> Unit,
     onArrange: () -> Unit,
+    onSettings: () -> Unit,
     onClose: () -> Unit,
     onSelectAll: () -> Unit,
     onDeselect: () -> Unit,
 ) {
     val selectedCount = (mode as? ShelfMode.Selecting)?.ids?.size ?: 0
-    Column(
-        Modifier
+    Row(
+        modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding(),
+            .statusBarsPadding()
+            .heightIn(min = Astra.HeaderMinDp.dp)
+            .padding(start = 4.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(start = 4.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            when (mode) {
-                ShelfMode.Browse -> BrowseBar(
-                    menuExpanded = menuExpanded,
-                    itemCount = itemCount,
-                    onMenuChange = onMenuChange,
-                    onAddText = onAddText,
-                    onSelectItems = onSelectItems,
-                    onArrange = onArrange,
-                    onHowToAdd = onHowToAdd,
-                )
-                is ShelfMode.Selecting -> SelectingBar(
-                    selectedCount = selectedCount,
-                    allSelected = selectedCount > 0 && selectedCount == itemCount,
-                    onClose = onClose,
-                    onSelectAll = onSelectAll,
-                    onDeselect = onDeselect,
-                )
-                ShelfMode.Arranging -> ArrangingBar(onDone = onClose)
-            }
-        }
-        if (itemCount > 0 && mode is ShelfMode.Browse) {
-            Text(
-                text = pluralStringResource(R.plurals.item_count, itemCount, itemCount),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+        when (mode) {
+            ShelfMode.Browse -> BrowseBar(
+                menuExpanded = menuExpanded,
+                itemCount = itemCount,
+                onMenuChange = onMenuChange,
+                onAdd = onAdd,
+                onSelectItems = onSelectItems,
+                onArrange = onArrange,
+                onHowToAdd = onHowToAdd,
+                onSettings = onSettings,
             )
+            is ShelfMode.Selecting -> SelectingBar(
+                selectedCount = selectedCount,
+                allSelected = selectedCount > 0 && selectedCount == itemCount,
+                onClose = onClose,
+                onSelectAll = onSelectAll,
+                onDeselect = onDeselect,
+            )
+            ShelfMode.Arranging -> ArrangingBar(onDone = onClose)
         }
     }
 }
@@ -609,19 +675,39 @@ private fun RowScope.BrowseBar(
     menuExpanded: Boolean,
     itemCount: Int,
     onMenuChange: (Boolean) -> Unit,
-    onAddText: () -> Unit,
+    onAdd: () -> Unit,
     onSelectItems: () -> Unit,
     onArrange: () -> Unit,
     onHowToAdd: () -> Unit,
+    onSettings: () -> Unit,
 ) {
-    Text(
-        text = stringResource(R.string.shelf_title),
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier
+    Column(
+        Modifier
             .padding(start = 12.dp)
             .weight(1f),
-    )
+    ) {
+        Text(
+            text = stringResource(R.string.shelf_title),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        if (itemCount > 0) {
+            Text(
+                text = pluralStringResource(R.plurals.item_count, itemCount, itemCount),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    if (itemCount > 0) {
+        TextButton(onClick = onAdd) {
+            Text(
+                text = stringResource(R.string.add),
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+    }
     Box {
         IconButton(onClick = { onMenuChange(true) }) {
             Icon(
@@ -634,10 +720,6 @@ private fun RowScope.BrowseBar(
             expanded = menuExpanded,
             onDismissRequest = { onMenuChange(false) },
         ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.add_text)) },
-                onClick = onAddText,
-            )
             if (itemCount > 0) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.select_items)) },
@@ -653,6 +735,10 @@ private fun RowScope.BrowseBar(
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.how_to_add)) },
                 onClick = onHowToAdd,
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.settings)) },
+                onClick = onSettings,
             )
         }
     }
@@ -714,7 +800,6 @@ private fun MixedShareBar(
     onShareText: () -> Unit,
     onCopyText: () -> Unit,
 ) {
-    val dark = isSystemInDarkTheme()
     val actions = listOf(
         stringResource(R.string.share_files, fileCount) to onShareFiles,
         stringResource(R.string.share_text, textCount) to onShareText,
@@ -733,18 +818,7 @@ private fun MixedShareBar(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
         }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(
-                    if (dark) {
-                        MaterialTheme.colorScheme.outline
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant
-                    },
-                ),
-        )
+        QuietHairline()
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -774,30 +848,35 @@ private fun MixedShareBar(
 }
 
 @Composable
+private fun QuietHairline() {
+    val dark = isSystemInDarkTheme()
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(
+                if (dark) {
+                    MaterialTheme.colorScheme.outline
+                } else {
+                    MaterialTheme.colorScheme.outlineVariant
+                },
+            ),
+    )
+}
+
+@Composable
 private fun SelectionBottomBar(
     enabled: Boolean,
     onShare: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    val dark = isSystemInDarkTheme()
     Column(
         Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .navigationBarsPadding(),
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(
-                    if (dark) {
-                        MaterialTheme.colorScheme.outline
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant
-                    },
-                ),
-        )
+        QuietHairline()
         val actionColor = MaterialTheme.colorScheme.onBackground.copy(alpha = if (enabled) 1f else 0.38f)
         Row(
             modifier = Modifier
@@ -836,67 +915,64 @@ private fun EmptyShelf(
     onHowToAdd: () -> Unit,
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.Start,
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(IconWellShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.Start,
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_shelf),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(24.dp),
+            Text(
+                text = stringResource(R.string.empty_headline),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.empty_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text = stringResource(R.string.empty_headline),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.empty_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(28.dp))
         Button(
             onClick = onAdd,
-            shape = PillShape,
+            modifier = Modifier.size(
+                width = Astra.EmptyAddWidthDp.dp,
+                height = Astra.EmptyAddHeightDp.dp,
+            ),
+            shape = ControlShape,
+            contentPadding = PaddingValues(0.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
-            contentPadding = PaddingValues(horizontal = 28.dp, vertical = 12.dp),
         ) {
             Text(
-                text = stringResource(R.string.add_items),
+                text = stringResource(R.string.add),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
             )
         }
-        Spacer(Modifier.height(8.dp))
-        TextButton(onClick = onHowToAdd) {
+        TextButton(
+            onClick = onHowToAdd,
+            modifier = Modifier.heightIn(min = Astra.HowToAddMinDp.dp),
+            contentPadding = PaddingValues(horizontal = 0.dp),
+        ) {
             Text(
                 text = stringResource(R.string.how_to_add),
                 color = MaterialTheme.colorScheme.onBackground,
             )
         }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ShelfItemCard(
+private fun ShelfItemRow(
     item: ShelfItem,
     index: Int,
     lastIndex: Int,
@@ -912,7 +988,6 @@ private fun ShelfItemCard(
 ) {
     var menu by remember { mutableStateOf(false) }
     var dragDy by remember { mutableFloatStateOf(0f) }
-    val dark = isSystemInDarkTheme()
     val context = LocalContext.current
     val density = LocalDensity.current
     val view = LocalView.current
@@ -923,32 +998,39 @@ private fun ShelfItemCard(
     val arranging = mode is ShelfMode.Arranging
     val selected = selecting != null && item.id in selecting.ids
     val lifting = dragDy != 0f
+    val boxed = selected || lifting
     val strokeTarget = when {
         selected -> MaterialTheme.colorScheme.onSurface
-        dark -> MaterialTheme.colorScheme.outline
-        else -> MaterialTheme.colorScheme.outlineVariant
+        else -> Color.Transparent
     }
     val stroke by animateColorAsState(
         targetValue = strokeTarget,
         animationSpec = motion.spec(MotionMs.Selection),
         label = "select-outline",
     )
+    val fillTarget = when {
+        selected || lifting -> MaterialTheme.colorScheme.surfaceVariant
+        else -> Color.Transparent
+    }
     val container by animateColorAsState(
-        targetValue = if (lifting) {
-            MaterialTheme.colorScheme.surfaceVariant
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
+        targetValue = fillTarget,
         animationSpec = motion.spec(MotionMs.Selection),
-        label = "reorder-lift",
+        label = "select-fill",
     )
     val rowModifier = Modifier
         .fillMaxWidth()
         .zIndex(if (lifting) 1f else 0f)
         .offset { IntOffset(0, dragDy.roundToInt()) }
-        .clip(CardShape)
-        .background(container)
-        .border(1.dp, stroke, CardShape)
+        .then(
+            if (boxed) {
+                Modifier
+                    .clip(SelectionShape)
+                    .background(container)
+                    .border(Astra.SelectionOutlineDp.dp, stroke, SelectionShape)
+            } else {
+                Modifier.background(container)
+            },
+        )
         .then(
             when {
                 selecting != null -> Modifier.combinedClickable(onClick = onToggle, onLongClick = onToggle)
@@ -956,7 +1038,7 @@ private fun ShelfItemCard(
                 else -> Modifier.combinedClickable(onClick = onOpen, onLongClick = onLongPress)
             },
         )
-        .padding(12.dp)
+        .padding(vertical = 12.dp, horizontal = 4.dp)
 
     Row(
         modifier = rowModifier,

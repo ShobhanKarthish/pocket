@@ -16,8 +16,8 @@ val PocketTypography = Typography(
     titleLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
+        fontSize = Astra.TitleSp.sp,
+        lineHeight = Astra.TitleLineSp.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,

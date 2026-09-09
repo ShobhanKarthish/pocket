@@ -301,6 +301,11 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     onShare = { shareItems(viewModel.selectedInShelfOrder()) },
                     onRemove = { pendingRemoveSelected = true },
                 )
+            } else if (empty) {
+                EmptyShelfDock(
+                    onAdd = ::openAddSheet,
+                    onHowToAdd = { showHowTo = true },
+                )
             }
         },
     ) { inner ->
@@ -356,14 +361,6 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 }
             }
         }
-    }
-
-    if (empty && detailItem == null && !showSettings) {
-        EmptyShelfDock(
-            modifier = Modifier.align(Alignment.BottomStart),
-            onAdd = ::openAddSheet,
-            onHowToAdd = { showHowTo = true },
-        )
     }
 
     if (showHowTo) {
@@ -952,13 +949,14 @@ private fun EmptyShelf(
 
 @Composable
 private fun EmptyShelfDock(
-    modifier: Modifier,
     onAdd: () -> Unit,
     onHowToAdd: () -> Unit,
 ) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .navigationBarsPadding()
             .padding(
                 start = 16.dp,
                 end = 16.dp,

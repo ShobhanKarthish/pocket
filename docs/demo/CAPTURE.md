@@ -56,13 +56,7 @@ Share-out of the text row opened the system sheet with that prose as `EXTRA_TEXT
 
 ## Selection and arrange stills
 
-`selection-*.png` and `arrange-*.png` are from a later boot of the same AVD after installing the selection+arrange+batch APK. How to add was dismissed. Three `ACTION_SEND` `text/plain` extras filled the shelf:
-
-- `Second note for arrange.`
-- `Pack the bag. Do not forget socks.`
-- `https://example.com/notes` (title `example.com`)
-
-Overflow **Select items**, then the first two checkboxes, produced **2 selected**. Top chrome is Close + Select all. Selected rows use a checkbox and a darker 1 dp outline. Bottom chrome is **Share · Remove** only. FAB is hidden. Overflow **Arrange** showed six-dot handles, **Done**, and Move up / Move down on each row. Close and Done return to the browse bar.
+`selection-*.png` were recaptured after the freeze motion pass (check + outline 140 ms at rest). Rest chrome is unchanged: **2 selected**, Close + Select all, check + 1 dp outline, bottom **Share · Remove**, FAB hidden. `arrange-*.png` stay on the earlier arrange take (drag handles, **Done**, Move up / Move down).
 
 ## Item detail and mixed share stills
 

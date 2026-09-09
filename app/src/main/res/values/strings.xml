@@ -40,4 +40,16 @@
     <string name="move_down">Move down</string>
     <string name="drag_handle">Drag to reorder</string>
     <string name="close">Close</string>
+    <string name="copy">Copy</string>
+    <string name="copied">Copied</string>
+    <string name="open">Open</string>
+    <string name="open_failed">Nothing on this device can open that.</string>
+    <string name="pdf_open_hint">Pocket does not read PDFs. Open it in another app, or share the file.</string>
+    <string name="pdf_no_viewer">No PDF viewer is installed. Share the file instead.</string>
+    <string name="preview_unavailable">This image could not be shown.</string>
+    <string name="share_files">Share files</string>
+    <string name="share_text">Share text</string>
+    <string name="copy_text">Copy text</string>
+    <string name="share_choice_title">Share</string>
+    <string name="share_mixed">Some apps may not accept a mix of images and PDFs.</string>
 </resources>

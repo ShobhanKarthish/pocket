@@ -180,6 +180,9 @@ sealed interface UserMessage {
     data class RemovedSome(val count: Int) : UserMessage
     data class SharePartial(val shared: Int, val skipped: Int) : UserMessage
     data object ShareNone : UserMessage
+    data object ShareMixed : UserMessage
+    data object Copied : UserMessage
+    data class OpenFailed(val text: String) : UserMessage
 }
 
 private fun IngestResult.toUserMessage(): UserMessage = when (this) {

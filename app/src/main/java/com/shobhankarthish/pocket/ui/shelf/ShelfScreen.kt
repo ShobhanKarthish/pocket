@@ -79,10 +79,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shobhankarthish.pocket.R
+import com.shobhankarthish.pocket.shelf.ShareDecision
 import com.shobhankarthish.pocket.shelf.ShareOutcome
 import com.shobhankarthish.pocket.shelf.ShareOut
+import com.shobhankarthish.pocket.shelf.SharePrep
 import com.shobhankarthish.pocket.shelf.ShelfItem
 import com.shobhankarthish.pocket.shelf.ShelfMode
+import java.io.File
 import kotlin.math.roundToInt
 
 private val CardShape = RoundedCornerShape(16.dp)
@@ -107,6 +110,8 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     var pendingRemove by remember { mutableStateOf<ShelfItem?>(null) }
     var pendingRemoveSelected by remember { mutableStateOf(false) }
     var barMenu by remember { mutableStateOf(false) }
+    var detailItem by remember { mutableStateOf<ShelfItem?>(null) }
+    var pendingChoice by remember { mutableStateOf<PendingChoice?>(null) }
 
     val picker = rememberLauncherForActivityResult(
         contract = object : ActivityResultContracts.OpenDocument() {
@@ -126,15 +131,27 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         picker.launch(arrayOf("image/*", "application/pdf"))
     }
 
-    fun shareItems(chosen: List<ShelfItem>) {
-        if (chosen.isEmpty()) return
-        val pairs = chosen.map { item -> item to viewModel.fileFor(item) }
-        when (val outcome = ShareOut.sendSelection(context, pairs)) {
+    fun launchShare(decision: ShareDecision, pairs: List<Pair<ShelfItem, File>>) {
+        if (decision is ShareDecision.SendFiles && decision.mixedMimeWarning) {
+            viewModel.note(UserMessage.ShareMixed)
+        }
+        when (val outcome = ShareOut.execute(context, decision, pairs)) {
             ShareOutcome.Nothing -> viewModel.note(UserMessage.ShareNone)
             is ShareOutcome.Partial -> viewModel.note(
                 UserMessage.SharePartial(outcome.shared, outcome.skipped),
             )
-            ShareOutcome.Sent -> Unit
+            ShareOutcome.Done -> Unit
+        }
+    }
+
+    fun shareItems(chosen: List<ShelfItem>) {
+        if (chosen.isEmpty()) return
+        val pairs = chosen.map { item -> item to viewModel.fileFor(item) }
+        val prep = ShareOut.prepare(pairs)
+        when (val decision = prep.decision) {
+            ShareDecision.Nothing -> viewModel.note(UserMessage.ShareNone)
+            is ShareDecision.Choose -> pendingChoice = PendingChoice(pairs, prep)
+            else -> launchShare(decision, pairs)
         }
     }
 
@@ -157,6 +174,9 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     message.shared + message.skipped,
                 )
                 UserMessage.ShareNone -> context.getString(R.string.share_none)
+                UserMessage.ShareMixed -> context.getString(R.string.share_mixed)
+                UserMessage.Copied -> context.getString(R.string.copied)
+                is UserMessage.OpenFailed -> message.text
             }
             snackbar.showSnackbar(text)
         }
@@ -168,16 +188,21 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         }
     }
 
-    BackHandler(enabled = !browsing) {
-        viewModel.exitMode()
+    BackHandler(enabled = detailItem != null || !browsing) {
+        if (detailItem != null) {
+            detailItem = null
+        } else {
+            viewModel.exitMode()
+        }
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { if (detailItem == null) SnackbarHost(snackbar) },
         topBar = {
             ShelfAppBar(
                 itemCount = itemCount,
@@ -216,7 +241,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             }
         },
         floatingActionButton = {
-            if (!empty && browsing) {
+            if (!empty && browsing && detailItem == null) {
                 FloatingActionButton(
                     onClick = ::pickDocument,
                     shape = FabShape,
@@ -255,6 +280,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                         index = index,
                         lastIndex = items.lastIndex,
                         mode = mode,
+                        onOpen = { detailItem = item },
                         onShare = {
                             shareItems(listOf(item))
                         },
@@ -399,7 +425,91 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             containerColor = MaterialTheme.colorScheme.surface,
         )
     }
+
+    pendingChoice?.let { choice ->
+        val decide = choice.prep.decision as ShareDecision.Choose
+        ModalBottomSheet(
+            onDismissRequest = { pendingChoice = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+                Text(
+                    text = stringResource(R.string.share_choice_title),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                val files = decide.files
+                if (files is ShareDecision.SendFiles && files.mixedMimeWarning) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.share_mixed),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                TextButton(
+                    onClick = {
+                        pendingChoice = null
+                        launchShare(decide.files, choice.pairs)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = stringResource(R.string.share_files),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                TextButton(
+                    onClick = {
+                        pendingChoice = null
+                        launchShare(decide.text, choice.pairs)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = stringResource(R.string.share_text),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                TextButton(
+                    onClick = {
+                        pendingChoice = null
+                        ShareOut.copyText(context, decide.text.body)
+                        viewModel.note(UserMessage.Copied)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = stringResource(R.string.copy_text),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                Spacer(Modifier.height(20.dp))
+            }
+        }
+    }
+
+    detailItem?.let { item ->
+        ItemDetail(
+            item = item,
+            file = viewModel.fileFor(item),
+            onClose = { detailItem = null },
+            onShare = { shareItems(listOf(item)) },
+            onCopied = { viewModel.note(UserMessage.Copied) },
+            onOpenFailed = { viewModel.note(UserMessage.OpenFailed(it)) },
+        )
+        SnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+    }
 }
+
+private data class PendingChoice(
+    val pairs: List<Pair<ShelfItem, File>>,
+    val prep: SharePrep,
+)
 
 @Composable
 private fun ShelfAppBar(
@@ -689,6 +799,7 @@ private fun ShelfItemCard(
     index: Int,
     lastIndex: Int,
     mode: ShelfMode,
+    onOpen: () -> Unit,
     onShare: () -> Unit,
     onRemove: () -> Unit,
     onToggle: () -> Unit,
@@ -723,7 +834,7 @@ private fun ShelfItemCard(
             when {
                 selecting != null -> Modifier.combinedClickable(onClick = onToggle, onLongClick = onToggle)
                 arranging -> Modifier
-                else -> Modifier.combinedClickable(onClick = {}, onLongClick = onLongPress)
+                else -> Modifier.combinedClickable(onClick = onOpen, onLongClick = onLongPress)
             },
         )
         .padding(12.dp)

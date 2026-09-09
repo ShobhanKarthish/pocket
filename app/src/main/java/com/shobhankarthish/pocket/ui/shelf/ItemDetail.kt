@@ -59,6 +59,7 @@ fun ItemDetail(
     file: File,
     onClose: () -> Unit,
     onShare: () -> Unit,
+    onRemove: () -> Unit,
     onCopied: () -> Unit,
     onOpenFailed: (String) -> Unit,
 ) {
@@ -84,6 +85,7 @@ fun ItemDetail(
         DetailActions(
             item = item,
             onShare = onShare,
+            onRemove = onRemove,
             onCopy = {
                 val body = ShareOut.textBody(item, file)
                 ShareOut.copyText(context, body)
@@ -250,20 +252,20 @@ private fun PdfPreview(item: ShelfItem) {
 private fun DetailActions(
     item: ShelfItem,
     onShare: () -> Unit,
+    onRemove: () -> Unit,
     onCopy: () -> Unit,
     onOpen: () -> Unit,
 ) {
     val dark = isSystemInDarkTheme()
-    val actions = buildList {
-        when (item.kind) {
-            ItemKind.LINK, ItemKind.PDF -> add(R.string.open to onOpen)
-            else -> Unit
-        }
-        when (item.kind) {
-            ItemKind.TEXT, ItemKind.LINK -> add(R.string.copy to onCopy)
-            else -> Unit
-        }
-        add(R.string.share to onShare)
+    val actions = when (item.kind) {
+        ItemKind.IMAGE -> listOf(R.string.share to onShare, R.string.remove to onRemove)
+        ItemKind.TEXT -> listOf(R.string.copy to onCopy, R.string.share to onShare)
+        ItemKind.LINK -> listOf(
+            R.string.open to onOpen,
+            R.string.copy to onCopy,
+            R.string.share to onShare,
+        )
+        ItemKind.PDF -> listOf(R.string.open to onOpen, R.string.share to onShare)
     }
     Column(
         Modifier

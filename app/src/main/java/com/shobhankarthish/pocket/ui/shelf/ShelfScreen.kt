@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -74,6 +75,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -185,6 +187,13 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     LaunchedEffect(empty, howToAddSeen, browsing) {
         if (empty && !howToAddSeen && browsing) {
             showHowTo = true
+        }
+    }
+
+    LaunchedEffect(items, detailItem) {
+        val open = detailItem ?: return@LaunchedEffect
+        if (items.none { it.id == open.id }) {
+            detailItem = null
         }
     }
 
@@ -336,30 +345,6 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         }
     }
 
-    pendingRemove?.let { item ->
-        AlertDialog(
-            onDismissRequest = { pendingRemove = null },
-            title = { Text(stringResource(R.string.remove_title)) },
-            text = { Text(stringResource(R.string.remove_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.remove(item)
-                        pendingRemove = null
-                    },
-                ) {
-                    Text(stringResource(R.string.remove))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingRemove = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-        )
-    }
-
     if (pendingRemoveSelected) {
         AlertDialog(
             onDismissRequest = { pendingRemoveSelected = false },
@@ -433,67 +418,26 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             onDismissRequest = { pendingChoice = null },
             sheetState = choiceSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = null,
         ) {
-            Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                Text(
-                    text = stringResource(R.string.share_choice_title),
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                val files = decide.files
-                if (files is ShareDecision.SendFiles && files.mixedMimeWarning) {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.share_mixed),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
-                TextButton(
-                    onClick = {
-                        pendingChoice = null
-                        launchShare(decide.files, choice.pairs)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = stringResource(R.string.share_files),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Start,
-                    )
-                }
-                TextButton(
-                    onClick = {
-                        pendingChoice = null
-                        launchShare(decide.text, choice.pairs)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = stringResource(R.string.share_text),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Start,
-                    )
-                }
-                TextButton(
-                    onClick = {
-                        pendingChoice = null
-                        ShareOut.copyText(context, decide.text.body)
-                        viewModel.note(UserMessage.Copied)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = stringResource(R.string.copy_text),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Start,
-                    )
-                }
-                Spacer(Modifier.height(28.dp))
-            }
+            MixedShareBar(
+                fileCount = decide.fileCount(),
+                textCount = decide.textCount(),
+                mixedMimeWarning = (decide.files as? ShareDecision.SendFiles)?.mixedMimeWarning == true,
+                onShareFiles = {
+                    pendingChoice = null
+                    launchShare(decide.files, choice.pairs)
+                },
+                onShareText = {
+                    pendingChoice = null
+                    launchShare(decide.text, choice.pairs)
+                },
+                onCopyText = {
+                    pendingChoice = null
+                    ShareOut.copyText(context, decide.text.body)
+                    viewModel.note(UserMessage.Copied)
+                },
+            )
         }
     }
 
@@ -503,12 +447,38 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             file = viewModel.fileFor(item),
             onClose = { detailItem = null },
             onShare = { shareItems(listOf(item)) },
+            onRemove = { pendingRemove = item },
             onCopied = { viewModel.note(UserMessage.Copied) },
             onOpenFailed = { viewModel.note(UserMessage.OpenFailed(it)) },
         )
         SnackbarHost(
             hostState = snackbar,
             modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+
+    pendingRemove?.let { item ->
+        AlertDialog(
+            onDismissRequest = { pendingRemove = null },
+            title = { Text(stringResource(R.string.remove_title)) },
+            text = { Text(stringResource(R.string.remove_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.remove(item)
+                        if (detailItem?.id == item.id) detailItem = null
+                        pendingRemove = null
+                    },
+                ) {
+                    Text(stringResource(R.string.remove))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRemove = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
         )
     }
     }
@@ -676,6 +646,74 @@ private fun RowScope.ArrangingBar(onDone: () -> Unit) {
             text = stringResource(R.string.done),
             color = MaterialTheme.colorScheme.onBackground,
         )
+    }
+}
+
+@Composable
+private fun MixedShareBar(
+    fileCount: Int,
+    textCount: Int,
+    mixedMimeWarning: Boolean,
+    onShareFiles: () -> Unit,
+    onShareText: () -> Unit,
+    onCopyText: () -> Unit,
+) {
+    val dark = isSystemInDarkTheme()
+    val actions = listOf(
+        stringResource(R.string.share_files, fileCount) to onShareFiles,
+        stringResource(R.string.share_text, textCount) to onShareText,
+        stringResource(R.string.copy_text) to onCopyText,
+    )
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+    ) {
+        if (mixedMimeWarning) {
+            Text(
+                text = stringResource(R.string.share_mixed),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(
+                    if (dark) {
+                        MaterialTheme.colorScheme.outline
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant
+                    },
+                ),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            actions.forEachIndexed { index, (label, action) ->
+                if (index > 0) {
+                    Text(
+                        text = "\u00B7",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+                }
+                Text(
+                    text = label,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.clickable(role = Role.Button, onClick = action),
+                )
+            }
+        }
     }
 }
 

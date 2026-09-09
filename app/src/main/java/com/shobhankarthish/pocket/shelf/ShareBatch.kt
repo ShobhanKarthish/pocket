@@ -30,6 +30,19 @@ sealed interface ShareDecision {
         val files: ShareDecision,
         val text: SendText,
     ) : ShareDecision
+
+    fun fileCount(): Int = when (this) {
+        is SendFile -> 1
+        is SendFiles -> items.size
+        is Choose -> files.fileCount()
+        is SendText, ShareDecision.Nothing -> 0
+    }
+
+    fun textCount(): Int = when (this) {
+        is SendText -> items.size
+        is Choose -> text.items.size
+        is SendFile, is SendFiles, ShareDecision.Nothing -> 0
+    }
 }
 
 data class SharePrep(

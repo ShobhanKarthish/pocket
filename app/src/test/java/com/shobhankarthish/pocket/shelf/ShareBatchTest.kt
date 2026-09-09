@@ -120,6 +120,8 @@ class ShareBatchTest {
         assertEquals("a", files.item.id)
         assertEquals(listOf("n", "l"), choose.text.items.map { it.id })
         assertEquals("hello\n\nhttps://example.com/notes", choose.text.body)
+        assertEquals(1, choose.fileCount())
+        assertEquals(2, choose.textCount())
         assertEquals(0, prep.skipped)
     }
 

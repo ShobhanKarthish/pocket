@@ -41,9 +41,9 @@ The FileProvider authority is `com.shobhankarthish.pocket.files`. Paths are limi
 
 A single file or one text/link still uses `ACTION_SEND`. Several images use `ACTION_SEND_MULTIPLE` with `image/*` or one shared image MIME. Several PDFs use `application/pdf`. Images and PDFs together use `*/*` and Pocket warns that some apps may not accept the mix.
 
-Text and links share as one `text/plain` body in shelf order. Files plus text or links open a sheet: Share files, Share text, or Copy text. Pocket does not drop the text, attach it silently onto the file send, show Sent, or clear the selection after share.
+Text and links share as one `text/plain` body in shelf order. Files plus text or links open a sheet: **Share files (n) · Share text (n) · Copy text**. Pocket does not drop the text, attach it silently onto the file send, show Sent, or clear the selection after share.
 
-Tap a row to open it. Images fill the screen and pinch to zoom. Text and links can be copied or shared. A link can also open in a browser. A PDF opens in another app if one is installed. If none is, Pocket says so and Share stays.
+Tap a row to open it. Images fill the screen and pinch to zoom, with **Share · Remove**. Text is **Copy · Share**. A link is **Open · Copy · Share**. A PDF opens in another app if one is installed. If none is, Pocket says so and Share stays.
 
 Long-press a row, or use **Select items**, to select several. The top bar shows **N selected** with Close and Select all. Share and Remove sit in the bottom bar. There is no Move on a single shelf. Close leaves selection.
 

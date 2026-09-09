@@ -8,7 +8,7 @@ Ink **PASS 2026-09-09**. Astra redesign freeze §12 (`docs/ASTRA-REDESIGN-v1.md`
 
 | File | What it shows |
 | --- | --- |
-| `empty-light.png` | Empty shelf, light, no mark, copy at top, docked **Add items** 136×48 r12 + **How to add** at the bottom |
+| `empty-light.png` | Empty shelf, light, no mark, copy upper-left, docked **Add items** 136×48 r12 + **How to add** ~28 dp above the safe inset |
 | `empty-dark.png` | Same empty chrome, dark |
 | `populated-light.png` | Three unboxed rows (PNG + text + link), header **Pocket Shelf** + **3 items** inside the 72 dp bar, header text **Add**, no FAB |
 | `populated-dark.png` | Same list, dark (header Add + count + unboxed rows) |
@@ -47,7 +47,7 @@ Ink **PASS 2026-09-09** chrome-gate fix on Astra redesign freeze §12.
 
 How to add was already dismissed. Populated / selection / arrange / detail / mixed / add-sheet stills used a PNG (`pocket-demo.png` / `img1.png`), a text note (`Pack the bag. Do not forget socks.`), and the `example.com` link.
 
-Header browse: title 20/28, count inside the min-72 dp bar, text **Add**. Empty docks **Add items** 136×48 r12 at the bottom with **How to add**, not under the copy. Resting rows are unboxed with bare glyph slots. Selected rows: tonal fill + 2 dp r12 outline + **24 dp circle** check. Arrange keeps Move up / Move down with readable titles. Add sheet: **Add items** / **Choose files** / **Add text**. Mixed share: Material sheet headed **Share selected items**. Settings: Appearance System/Light/Dark, Haptics, Storage + Clear shelf, Privacy. Motion unchanged (BRIEF table only).
+Header browse: title 20/28, count inside the min-72 dp bar, text **Add**. Empty docks **Add items** 136×48 r12 + **How to add** ~28 dp above the safe inset, not under the copy. Resting rows are unboxed with bare glyph slots. Selected rows: tonal fill + 2 dp r12 outline + **24 dp circle** check. Arrange keeps Move up / Move down with readable titles. Add sheet: **Add items** / **Choose files** / **Add text**. Mixed share: Material sheet headed **Share selected items**. Settings: Appearance System/Light/Dark, Haptics, Storage + Clear shelf, Privacy. Motion unchanged (BRIEF table only).
 
 Empty stills were taken after Select all → Remove (with Undo snackbar allowed to expire). Re-seed is not in git.
 

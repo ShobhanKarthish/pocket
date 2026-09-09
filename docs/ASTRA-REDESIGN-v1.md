@@ -21,7 +21,7 @@ Motion is unchanged: freeze §5 / BRIEF §8 timings only. No bounce, stagger, gl
 
 - **No** mark / icon well.
 - Headline and body **left-aligned**.
-- Docked **Add items** **136 × 48 dp**, radius **12**, at the **bottom** of the empty canvas (not under the copy). Opens the Add sheet (R7).
+- Docked **Add items** **136 × 48 dp**, radius **12**, at the **bottom** of the empty canvas (not under the copy), **~28 dp above the safe inset**. Opens the Add sheet (R7).
 - **How to add** control **≥ 48 dp** tall, docked with Add items.
 
 ## R3 Resting rows

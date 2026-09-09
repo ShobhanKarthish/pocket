@@ -11,6 +11,7 @@ class AstraTest {
         assertEquals(72, Astra.HeaderMinDp)
         assertEquals(136, Astra.EmptyAddWidthDp)
         assertEquals(48, Astra.EmptyAddHeightDp)
+        assertEquals(28, Astra.EmptyDockAboveSafeDp)
         assertEquals(12, Astra.RadiusDp)
         assertEquals(48, Astra.HowToAddMinDp)
         assertEquals(2, Astra.SelectionOutlineDp)

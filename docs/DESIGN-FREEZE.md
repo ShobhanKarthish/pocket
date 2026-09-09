@@ -73,7 +73,7 @@ Multiple shelves, bubble, overlays, Accessibility, clipboard monitor, video, aud
 Implement `docs/ASTRA-REDESIGN-v1.md` as **one pack** on main.
 
 - R1 header 20/28, min 72 dp, count inside the bar
-- R2 empty: no mark, left-align, docked **Add items** 136×48 r12 at the bottom, How to add ≥48
+- R2 empty: no mark, left-align, docked **Add items** 136×48 r12 at the bottom (~28 dp above the safe inset), How to add ≥48
 - R3 unboxed resting rows; bare glyph slots
 - R4 no FAB; header text Add; hide Add 0 ms in selection/arrange
 - R5 tonal fill + 2 dp outline r12 + 24 dp circle check; arrange handles **and** Move up/down

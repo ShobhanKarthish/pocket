@@ -301,6 +301,11 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     onShare = { shareItems(viewModel.selectedInShelfOrder()) },
                     onRemove = { pendingRemoveSelected = true },
                 )
+            } else if (empty) {
+                EmptyShelfDock(
+                    onAdd = ::openAddSheet,
+                    onHowToAdd = { showHowTo = true },
+                )
             }
         },
     ) { inner ->
@@ -309,8 +314,6 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(inner),
-                onAdd = ::openAddSheet,
-                onHowToAdd = { showHowTo = true },
             )
         } else {
             LazyColumn(
@@ -924,34 +927,43 @@ private fun SelectionBottomBar(
 @Composable
 private fun EmptyShelf(
     modifier: Modifier,
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.Start,
+    ) {
+        Text(
+            text = stringResource(R.string.empty_headline),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.empty_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun EmptyShelfDock(
     onAdd: () -> Unit,
     onHowToAdd: () -> Unit,
 ) {
     Column(
-        modifier = modifier
-            .padding(horizontal = 16.dp)
-            .navigationBarsPadding(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .navigationBarsPadding()
+            .padding(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = Astra.EmptyDockAboveSafeDp.dp,
+            ),
         horizontalAlignment = Alignment.Start,
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            horizontalAlignment = Alignment.Start,
-        ) {
-            Text(
-                text = stringResource(R.string.empty_headline),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.empty_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(Modifier.weight(1f))
         Button(
             onClick = onAdd,
             modifier = Modifier.size(
@@ -981,7 +993,6 @@ private fun EmptyShelf(
                 color = MaterialTheme.colorScheme.onBackground,
             )
         }
-        Spacer(Modifier.height(8.dp))
     }
 }
 

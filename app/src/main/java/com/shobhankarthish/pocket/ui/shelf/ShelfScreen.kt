@@ -12,7 +12,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,17 +25,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -52,6 +55,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -66,15 +70,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -82,6 +87,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -101,6 +110,8 @@ import com.shobhankarthish.pocket.ui.motion.lightHaptic
 import com.shobhankarthish.pocket.ui.motion.rememberPocketMotion
 import com.shobhankarthish.pocket.ui.theme.Astra
 import java.io.File
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private val ControlShape = RoundedCornerShape(Astra.RadiusDp.dp)
@@ -121,16 +132,33 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     val context = LocalContext.current
     val motion = rememberPocketMotion(haptics)
     var knownIds by remember { mutableStateOf<Set<String>?>(null) }
-    var showHowTo by remember { mutableStateOf(false) }
-    var showAddSheet by remember { mutableStateOf(false) }
-    var showAddText by remember { mutableStateOf(false) }
-    var addTextDraft by remember { mutableStateOf("") }
+    var showHowTo by rememberSaveable { mutableStateOf(false) }
+    var showAddSheet by rememberSaveable { mutableStateOf(false) }
+    var showAddText by rememberSaveable { mutableStateOf(false) }
+    var addTextDraft by rememberSaveable { mutableStateOf("") }
     var pendingRemove by remember { mutableStateOf<ShelfItem?>(null) }
     var pendingRemoveSelected by remember { mutableStateOf(false) }
     var barMenu by remember { mutableStateOf(false) }
     var detailItem by remember { mutableStateOf<ShelfItem?>(null) }
     var showSettings by remember { mutableStateOf(false) }
     var pendingChoice by remember { mutableStateOf<PendingChoice?>(null) }
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    var closingSheet by remember { mutableStateOf(false) }
+    var draggingId by remember { mutableStateOf<String?>(null) }
+
+    fun closeSheet(state: SheetState, onClosed: () -> Unit) {
+        if (closingSheet) return
+        closingSheet = true
+        scope.launch {
+            try {
+                state.hide()
+                if (!state.isVisible) onClosed()
+            } finally {
+                closingSheet = false
+            }
+        }
+    }
 
     val picker = rememberLauncherForActivityResult(
         contract = object : ActivityResultContracts.OpenDocument() {
@@ -315,6 +343,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             )
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(inner),
@@ -333,11 +362,13 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     ItemEnter(
                         animate = animateEnter,
                         motion = motion,
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = null,
-                            fadeOutSpec = motion.spec(MotionMs.Remove),
-                            placementSpec = motion.spec(MotionMs.Add),
-                        ),
+                        modifier = Modifier
+                            .zIndex(if (draggingId == item.id) 1f else 0f)
+                            .animateItem(
+                                fadeInSpec = null,
+                                fadeOutSpec = motion.spec(MotionMs.Remove),
+                                placementSpec = if (draggingId == item.id) null else motion.spec(MotionMs.Add),
+                            ),
                     ) {
                         ShelfItemRow(
                             item = item,
@@ -345,6 +376,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                             lastIndex = items.lastIndex,
                             mode = mode,
                             motion = motion,
+                            listState = listState,
                             onOpen = { detailItem = item },
                             onShare = {
                                 shareItems(listOf(item))
@@ -353,7 +385,8 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                             onToggle = { viewModel.toggleSelected(item.id) },
                             onLongPress = { viewModel.enterSelecting(item.id) },
                             onMove = { delta -> viewModel.moveItem(item.id, delta) },
-                            onDragTo = { to -> viewModel.moveItemTo(index, to) },
+                            onDragTo = viewModel::moveItemTo,
+                            onDraggingChange = { draggingId = if (it) item.id else null },
                         )
                     }
                 }
@@ -372,8 +405,10 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     if (showHowTo) {
         ModalBottomSheet(
             onDismissRequest = {
-                showHowTo = false
-                viewModel.markHowToAddSeen()
+                if (!closingSheet) {
+                    showHowTo = false
+                    viewModel.markHowToAddSeen()
+                }
             },
             sheetState = howToSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -381,7 +416,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         ) {
             Column(
                 Modifier
-                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 20.dp),
             ) {
                 Text(
@@ -397,9 +432,12 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 Spacer(Modifier.height(20.dp))
                 Button(
                     onClick = {
-                        showHowTo = false
-                        viewModel.markHowToAddSeen()
+                        closeSheet(howToSheetState) {
+                            showHowTo = false
+                            viewModel.markHowToAddSeen()
+                        }
                     },
+                    enabled = !closingSheet,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(Astra.HowToAddMinDp.dp),
@@ -418,7 +456,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
 
     if (showAddSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showAddSheet = false },
+            onDismissRequest = { if (!closingSheet) showAddSheet = false },
             sheetState = addSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
             dragHandle = null,
@@ -426,27 +464,32 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(bottom = 8.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 20.dp),
             ) {
                 Text(
                     text = stringResource(R.string.add_items),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
+                Spacer(Modifier.height(12.dp))
                 QuietSheetRow(
                     label = stringResource(R.string.choose_files),
                     onClick = {
-                        showAddSheet = false
-                        pickDocument()
+                        closeSheet(addSheetState) {
+                            showAddSheet = false
+                            pickDocument()
+                        }
                     },
                 )
                 QuietSheetRow(
                     label = stringResource(R.string.add_text),
                     onClick = {
-                        showAddSheet = false
-                        showAddText = true
+                        closeSheet(addSheetState) {
+                            showAddSheet = false
+                            showAddText = true
+                        }
                     },
                 )
             }
@@ -460,6 +503,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             text = { Text(stringResource(R.string.remove_selected_body)) },
             confirmButton = {
                 TextButton(
+                    shape = ControlShape,
                     onClick = {
                         viewModel.removeSelected()
                         pendingRemoveSelected = false
@@ -469,7 +513,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRemoveSelected = false }) {
+                TextButton(onClick = { pendingRemoveSelected = false }, shape = ControlShape) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -480,8 +524,10 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     if (showAddText) {
         ModalBottomSheet(
             onDismissRequest = {
-                showAddText = false
-                addTextDraft = ""
+                if (!closingSheet) {
+                    showAddText = false
+                    addTextDraft = ""
+                }
             },
             sheetState = addTextSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -490,7 +536,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 20.dp),
             ) {
                 Text(
@@ -504,6 +550,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(stringResource(R.string.add_text_hint)) },
                     minLines = 3,
+                    maxLines = 6,
                     shape = ControlShape,
                 )
                 Spacer(Modifier.height(16.dp))
@@ -514,20 +561,27 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 ) {
                     TextButton(
                         onClick = {
-                            showAddText = false
-                            addTextDraft = ""
+                            closeSheet(addTextSheetState) {
+                                showAddText = false
+                                addTextDraft = ""
+                            }
                         },
+                        enabled = !closingSheet,
+                        shape = ControlShape,
                     ) {
                         Text(stringResource(R.string.cancel))
                     }
                     TextButton(
                         onClick = {
                             val draft = addTextDraft
-                            showAddText = false
-                            addTextDraft = ""
-                            viewModel.ingestText(draft)
+                            closeSheet(addTextSheetState) {
+                                showAddText = false
+                                addTextDraft = ""
+                                viewModel.ingestText(draft)
+                            }
                         },
-                        enabled = addTextDraft.isNotBlank(),
+                        enabled = addTextDraft.isNotBlank() && !closingSheet,
+                        shape = ControlShape,
                     ) {
                         Text(stringResource(R.string.add_text_confirm))
                     }
@@ -539,26 +593,33 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     pendingChoice?.let { choice ->
         val decide = choice.prep.decision as ShareDecision.Choose
         ModalBottomSheet(
-            onDismissRequest = { pendingChoice = null },
+            onDismissRequest = { if (!closingSheet) pendingChoice = null },
             sheetState = choiceSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = null,
         ) {
             MixedShareSheet(
                 fileCount = decide.fileCount(),
                 textCount = decide.textCount(),
                 mixedMimeWarning = (decide.files as? ShareDecision.SendFiles)?.mixedMimeWarning == true,
                 onShareFiles = {
-                    pendingChoice = null
-                    launchShare(decide.files, choice.pairs)
+                    closeSheet(choiceSheetState) {
+                        pendingChoice = null
+                        launchShare(decide.files, choice.pairs)
+                    }
                 },
                 onShareText = {
-                    pendingChoice = null
-                    launchShare(decide.text, choice.pairs)
+                    closeSheet(choiceSheetState) {
+                        pendingChoice = null
+                        launchShare(decide.text, choice.pairs)
+                    }
                 },
                 onCopyText = {
-                    pendingChoice = null
-                    ShareOut.copyText(context, decide.text.body)
-                    viewModel.note(UserMessage.Copied)
+                    closeSheet(choiceSheetState) {
+                        pendingChoice = null
+                        ShareOut.copyText(context, decide.text.body)
+                        viewModel.note(UserMessage.Copied)
+                    }
                 },
             )
         }
@@ -604,6 +665,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             text = { Text(stringResource(R.string.remove_body)) },
             confirmButton = {
                 TextButton(
+                    shape = ControlShape,
                     onClick = {
                         viewModel.remove(item)
                         if (detailItem?.id == item.id) detailItem = null
@@ -614,7 +676,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRemove = null }) {
+                TextButton(onClick = { pendingRemove = null }, shape = ControlShape) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -721,7 +783,7 @@ private fun RowScope.BrowseBar(
         }
     }
     if (itemCount > 0) {
-        TextButton(onClick = onAdd) {
+        TextButton(onClick = onAdd, shape = ControlShape) {
             Text(
                 text = stringResource(R.string.add),
                 color = MaterialTheme.colorScheme.onBackground,
@@ -786,7 +848,7 @@ private fun RowScope.SelectingBar(
         color = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.weight(1f),
     )
-    TextButton(onClick = if (allSelected) onDeselect else onSelectAll) {
+    TextButton(onClick = if (allSelected) onDeselect else onSelectAll, shape = ControlShape) {
         Text(
             text = stringResource(if (allSelected) R.string.deselect else R.string.select_all),
             color = MaterialTheme.colorScheme.onBackground,
@@ -804,7 +866,7 @@ private fun RowScope.ArrangingBar(onDone: () -> Unit) {
             .padding(start = 12.dp)
             .weight(1f),
     )
-    TextButton(onClick = onDone) {
+    TextButton(onClick = onDone, shape = ControlShape) {
         Text(
             text = stringResource(R.string.done),
             color = MaterialTheme.colorScheme.onBackground,
@@ -829,8 +891,8 @@ private fun MixedShareSheet(
     Column(
         Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(bottom = 8.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(vertical = 20.dp),
     ) {
         Text(
             text = stringResource(R.string.share_selected_items),
@@ -871,18 +933,11 @@ private fun MixedShareSheet(
 
 @Composable
 private fun QuietHairline() {
-    val dark = isSystemInDarkTheme()
     Box(
         Modifier
             .fillMaxWidth()
             .height(1.dp)
-            .background(
-                if (dark) {
-                    MaterialTheme.colorScheme.outline
-                } else {
-                    MaterialTheme.colorScheme.outlineVariant
-                },
-            ),
+            .background(MaterialTheme.colorScheme.outlineVariant),
     )
 }
 
@@ -907,7 +962,7 @@ private fun SelectionBottomBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
-            TextButton(onClick = onShare, enabled = enabled) {
+            TextButton(onClick = onShare, enabled = enabled, shape = ControlShape) {
                 Text(
                     text = stringResource(R.string.share),
                     color = actionColor,
@@ -919,7 +974,7 @@ private fun SelectionBottomBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 12.dp),
             )
-            TextButton(onClick = onRemove, enabled = enabled) {
+            TextButton(onClick = onRemove, enabled = enabled, shape = ControlShape) {
                 Text(
                     text = stringResource(R.string.remove),
                     color = actionColor,
@@ -967,7 +1022,7 @@ private fun EmptyShelfDock(
             .padding(
                 start = 16.dp,
                 end = 16.dp,
-                bottom = (Astra.EmptyDockAboveSafeDp - Astra.EmptyNavIconInsetDp).dp,
+                bottom = Astra.EmptyDockAboveSafeDp.dp,
             ),
         horizontalAlignment = Alignment.Start,
     ) {
@@ -991,29 +1046,16 @@ private fun EmptyShelfDock(
             )
         }
         Spacer(Modifier.height(Astra.EmptyAddHowGapDp.dp))
-        // Glyph line only (~10 dp) so Add sits 8 dp above the copy. The 48 dp
-        // tap target overflows down into the 28 dp How→nav gap.
-        Box(
-            modifier = Modifier
-                .height(10.dp)
-                .clipToBounds(),
-            contentAlignment = Alignment.CenterStart,
+        TextButton(
+            onClick = onHowToAdd,
+            modifier = Modifier.heightIn(min = Astra.HowToAddMinDp.dp),
+            shape = ControlShape,
+            contentPadding = PaddingValues(horizontal = 0.dp),
         ) {
             Text(
                 text = stringResource(R.string.how_to_add),
                 color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                modifier = Modifier.wrapContentHeight(unbounded = true),
-            )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .requiredSizeIn(
-                        minWidth = Astra.HowToAddMinDp.dp,
-                        minHeight = Astra.HowToAddMinDp.dp,
-                    )
-                    .clickable(role = Role.Button, onClick = onHowToAdd),
             )
         }
     }
@@ -1027,18 +1069,24 @@ private fun ShelfItemRow(
     lastIndex: Int,
     mode: ShelfMode,
     motion: PocketMotion,
+    listState: LazyListState,
     onOpen: () -> Unit,
     onShare: () -> Unit,
     onRemove: () -> Unit,
     onToggle: () -> Unit,
     onLongPress: () -> Unit,
     onMove: (Int) -> Unit,
-    onDragTo: (Int) -> Unit,
+    onDragTo: (Int, Int) -> Unit,
+    onDraggingChange: (Boolean) -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
-    var dragDy by remember { mutableFloatStateOf(0f) }
+    var dragging by remember { mutableStateOf(false) }
+    var dragStartOffset by remember { mutableFloatStateOf(0f) }
+    var dragDistance by remember { mutableFloatStateOf(0f) }
+    val currentDragTo by rememberUpdatedState(onDragTo)
+    val currentDraggingChange by rememberUpdatedState(onDraggingChange)
+    val currentMotion by rememberUpdatedState(motion)
     val context = LocalContext.current
-    val density = LocalDensity.current
     val view = LocalView.current
     val file = remember(item.id) {
         java.io.File(context.filesDir, "shelf/${item.relativePath}")
@@ -1046,8 +1094,7 @@ private fun ShelfItemRow(
     val selecting = mode as? ShelfMode.Selecting
     val arranging = mode is ShelfMode.Arranging
     val selected = selecting != null && item.id in selecting.ids
-    val lifting = dragDy != 0f
-    val boxed = selected || lifting
+    val lifting = dragging
     val strokeTarget = when {
         selected -> MaterialTheme.colorScheme.onSurface
         else -> Color.Transparent
@@ -1068,21 +1115,25 @@ private fun ShelfItemRow(
     )
     val rowModifier = Modifier
         .fillMaxWidth()
-        .zIndex(if (lifting) 1f else 0f)
-        .offset { IntOffset(0, dragDy.roundToInt()) }
-        .then(
-            if (boxed) {
-                Modifier
-                    .clip(SelectionShape)
-                    .background(container)
-                    .border(Astra.SelectionOutlineDp.dp, stroke, SelectionShape)
+        .offset {
+            val currentOffset = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == item.id }?.offset
+            val displacement = if (dragging && currentOffset != null) {
+                dragStartOffset + dragDistance - currentOffset
             } else {
-                Modifier.background(container)
-            },
-        )
+                0f
+            }
+            IntOffset(0, displacement.roundToInt())
+        }
+        .clip(SelectionShape)
+        .background(container)
+        .border(Astra.SelectionOutlineDp.dp, stroke, SelectionShape)
         .then(
             when {
-                selecting != null -> Modifier.combinedClickable(onClick = onToggle, onLongClick = onToggle)
+                selecting != null -> Modifier.toggleable(
+                    value = selected,
+                    role = Role.Checkbox,
+                    onValueChange = { onToggle() },
+                )
                 arranging -> Modifier
                 else -> Modifier.combinedClickable(onClick = onOpen, onLongClick = onLongPress)
             },
@@ -1094,36 +1145,73 @@ private fun ShelfItemRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (arranging) {
-            Icon(
-                painter = painterResource(R.drawable.ic_drag_handle),
-                contentDescription = stringResource(R.string.drag_handle),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            val moveUpLabel = stringResource(R.string.move_up)
+            val moveDownLabel = stringResource(R.string.move_down)
+            Box(
                 modifier = Modifier
-                    .size(24.dp)
-                    .pointerInput(item.id, index, lastIndex) {
-                        val step = with(density) { 80.dp.toPx() }
+                    .size(48.dp)
+                    .semantics(mergeDescendants = true) {
+                        customActions = buildList {
+                            if (index > 0) {
+                                add(CustomAccessibilityAction(moveUpLabel) { onMove(-1); true })
+                            }
+                            if (index < lastIndex) {
+                                add(CustomAccessibilityAction(moveDownLabel) { onMove(1); true })
+                            }
+                        }
+                    }
+                    .pointerInput(item.id, listState) {
+                        var pendingTarget: Int? = null
                         detectVerticalDragGestures(
-                            onDragStart = { lightHaptic(view, motion.haptics) },
-                            onDragEnd = {
-                                dragDy = 0f
-                                lightHaptic(view, motion.haptics)
+                            onDragStart = {
+                                val info = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == item.id }
+                                if (info != null) {
+                                    dragStartOffset = info.offset.toFloat()
+                                    dragDistance = 0f
+                                    pendingTarget = null
+                                    dragging = true
+                                    currentDraggingChange(true)
+                                    lightHaptic(view, currentMotion.haptics)
+                                }
                             },
-                            onDragCancel = { dragDy = 0f },
+                            onDragEnd = {
+                                dragging = false
+                                currentDraggingChange(false)
+                                lightHaptic(view, currentMotion.haptics)
+                            },
+                            onDragCancel = {
+                                dragging = false
+                                currentDraggingChange(false)
+                            },
                         ) { change, dy ->
                             change.consume()
-                            dragDy += dy
-                            val steps = (dragDy / step).toInt()
-                            if (steps != 0) {
-                                val target = (index + steps).coerceIn(0, lastIndex)
-                                if (target != index) {
-                                    onDragTo(target)
-                                    dragDy -= steps * step
-                                }
+                            if (!dragging) return@detectVerticalDragGestures
+                            dragDistance += dy
+                            val visible = listState.layoutInfo.visibleItemsInfo
+                            val current = visible.firstOrNull { it.key == item.id }
+                                ?: return@detectVerticalDragGestures
+                            // Wait for an in-flight reorder before issuing another index-based move.
+                            if (pendingTarget != null && current.index != pendingTarget) {
+                                return@detectVerticalDragGestures
+                            }
+                            pendingTarget = null
+                            val center = dragStartOffset + dragDistance + current.size / 2f
+                            val target = visible.minByOrNull { abs(it.offset + it.size / 2f - center) }
+                            if (target != null && target.index != current.index) {
+                                pendingTarget = target.index
+                                currentDragTo(current.index, target.index)
                             }
                         }
                     },
-            )
-            Spacer(Modifier.width(8.dp))
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_drag_handle),
+                    contentDescription = stringResource(R.string.drag_handle),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
         }
         ItemThumb(
             item = item,
@@ -1150,7 +1238,7 @@ private fun ShelfItemRow(
         }
         when {
             selecting != null -> {
-                SelectCircle(selected = selected, onClick = onToggle)
+                SelectCircle(selected = selected)
             }
             arranging -> {
                 CompactMoveButton(
@@ -1196,16 +1284,31 @@ private fun ShelfItemRow(
 }
 
 @Composable
-private fun SelectCircle(selected: Boolean, onClick: () -> Unit) {
+private fun SelectCircle(selected: Boolean) {
     val color = MaterialTheme.colorScheme.onSurface
+    // The whole row owns the checkbox action and state; keep one accessible target.
     Box(
-        modifier = Modifier
-            .size(Astra.SelectCircleDp.dp)
-            .clip(CircleShape)
-            .background(if (selected) color else Color.Transparent)
-            .border(Astra.SelectionOutlineDp.dp, color, CircleShape)
-            .clickable(role = Role.Checkbox, onClick = onClick),
-    )
+        modifier = Modifier.size(48.dp).clearAndSetSemantics {},
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(Astra.SelectCircleDp.dp)
+                .clip(CircleShape)
+                .background(if (selected) color else Color.Transparent)
+                .border(Astra.SelectionOutlineDp.dp, color, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -1213,7 +1316,7 @@ private fun CompactMoveButton(up: Boolean, enabled: Boolean, onClick: () -> Unit
     val tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.38f)
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(48.dp)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

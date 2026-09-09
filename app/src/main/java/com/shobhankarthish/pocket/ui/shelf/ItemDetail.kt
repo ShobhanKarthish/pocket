@@ -4,23 +4,28 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,14 +40,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.shobhankarthish.pocket.R
 import com.shobhankarthish.pocket.shelf.ItemKind
@@ -69,9 +78,11 @@ fun ItemDetail(
     Column(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
     ) {
         DetailBar(title = item.titleLine, onClose = onClose)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Box(
             Modifier
                 .weight(1f)
@@ -147,16 +158,33 @@ private fun ImagePreview(file: File) {
     val bitmap by produceState<Bitmap?>(initialValue = null, file.path) {
         value = withContext(Dispatchers.IO) { decodeThumb(file, PreviewPx) }
     }
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    var viewport by remember { mutableStateOf(IntSize.Zero) }
+    var scale by remember(file.path, viewport) { mutableFloatStateOf(1f) }
+    var offset by remember(file.path, viewport) { mutableStateOf(Offset.Zero) }
     Box(
         Modifier
             .fillMaxSize()
-            .pointerInput(bitmap) {
-                detectTransformGestures { _, pan, zoom, _ ->
+            .clipToBounds()
+            .onSizeChanged { viewport = it }
+            .pointerInput(bitmap, viewport) {
+                val image = bitmap ?: return@pointerInput
+                if (size.width == 0 || size.height == 0) return@pointerInput
+                val fit = minOf(
+                    size.width.toFloat() / image.width,
+                    size.height.toFloat() / image.height,
+                )
+                val center = Offset(size.width / 2f, size.height / 2f)
+                detectTransformGestures { centroid, pan, zoom, _ ->
                     val next = (scale * zoom).coerceIn(1f, 6f)
+                    val ratio = next / scale
+                    val translated = (offset + center - centroid) * ratio + centroid - center + pan
+                    val maxX = ((image.width * fit * next - size.width) / 2f).coerceAtLeast(0f)
+                    val maxY = ((image.height * fit * next - size.height) / 2f).coerceAtLeast(0f)
+                    offset = Offset(
+                        translated.x.coerceIn(-maxX, maxX),
+                        translated.y.coerceIn(-maxY, maxY),
+                    )
                     scale = next
-                    offset = if (next == 1f) Offset.Zero else offset + pan
                 }
             },
         contentAlignment = Alignment.Center,
@@ -228,6 +256,7 @@ private fun PdfPreview(item: ShelfItem) {
     Column(
         Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Text(
@@ -258,7 +287,6 @@ private fun DetailActions(
     onCopy: () -> Unit,
     onOpen: () -> Unit,
 ) {
-    val dark = isSystemInDarkTheme()
     val actions = when (item.kind) {
         ItemKind.IMAGE -> listOf(R.string.share to onShare, R.string.remove to onRemove)
         ItemKind.TEXT -> listOf(R.string.copy to onCopy, R.string.share to onShare)
@@ -275,38 +303,26 @@ private fun DetailActions(
             .background(MaterialTheme.colorScheme.background)
             .navigationBarsPadding(),
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(
-                    if (dark) {
-                        MaterialTheme.colorScheme.outline
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant
-                    },
-                ),
-        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            actions.forEachIndexed { index, (label, action) ->
-                if (index > 0) {
-                    Text(
-                        text = "\u00B7",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                }
-                TextButton(onClick = action) {
+            actions.forEach { (label, action) ->
+                TextButton(
+                    onClick = action,
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    shape = MaterialTheme.shapes.small,
+                ) {
                     Text(
                         text = stringResource(label),
                         color = MaterialTheme.colorScheme.onBackground,
                         style = MaterialTheme.typography.labelLarge,
+                        textAlign = TextAlign.Center,
                     )
                 }
             }

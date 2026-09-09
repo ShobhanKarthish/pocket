@@ -2,6 +2,6 @@
 <resources>
     <color name="pocket_black">#FF171717</color>
     <color name="pocket_white">#FFFFFFFF</color>
-    <color name="pocket_bg">#FFFAFAFA</color>
+    <color name="pocket_bg">#FFFFFFFF</color>
     <color name="ic_launcher_bg">#FFFFFFFF</color>
 </resources>

@@ -14,7 +14,7 @@ The first chrome pass used a 56 dp bar, 22/28 title, count **below** the bar, 16
 
 ## 3 Color
 
-Light and dark schemes in `Color.kt`. No Dynamic Color. Appearance in Settings is System / Light / Dark.
+Explicit neutral light and dark schemes in `Color.kt` / `Theme.kt`, including error, tertiary, and surface-container roles. No Dynamic Color. Appearance in Settings is System / Light / Dark. Photos retain their colors.
 
 ## 4 Type
 
@@ -29,7 +29,7 @@ Light and dark schemes in `Color.kt`. No Dynamic Color. Appearance in Settings i
 | Sheets | ~250 |
 | Add hide (select / arrange) | **0** |
 
-Press ripple is Material default. Arrange lift is tonal + light haptic. Reduce-motion (`animator_duration_scale` or `transition_animation_scale` == 0) uses `snap()`.
+Press ripple is Material default. Arrange lift is tonal + light haptic. Reduce-motion (`animator_duration_scale` or `transition_animation_scale` == 0) uses `snap()` and updates while the screen is open. Sheet button actions await dismissal before dispatching the next action.
 
 **Fail:** bounce, scaleIn/scaleOut, launch stagger, glass, glow, confetti, detail fade-through, FAB/bar slides, empty↔list crossfade, selection haptic, decorative loops.
 
@@ -73,7 +73,7 @@ Multiple shelves, bubble, overlays, Accessibility, clipboard monitor, video, aud
 Implement `docs/ASTRA-REDESIGN-v1.md` as **one pack** on main.
 
 - R1 header 20/28, min 72 dp, count inside the bar
-- R2 empty: no mark, left-align, docked **Add items** 136×48 r12 at the bottom (~28 dp above the safe inset), How to add ≥48
+- R2 empty: no mark, left-align, docked **Add items** 136×48 r12 plus a visible **How to add** ≥48 dp control; 28 dp clearance above the safe inset
 - R3 unboxed resting rows; bare glyph slots
 - R4 no FAB; header text Add; hide Add 0 ms in selection/arrange
 - R5 tonal fill + 2 dp outline r12 + 24 dp circle check; arrange handles **and** Move up/down

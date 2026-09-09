@@ -1,6 +1,9 @@
 package com.shobhankarthish.pocket.ui.motion
 
 import android.content.ContentResolver
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.View
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -10,6 +13,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,7 +40,27 @@ class PocketMotion(val reduce: Boolean, val haptics: Boolean = true) {
 @Composable
 fun rememberPocketMotion(haptics: Boolean = true): PocketMotion {
     val context = LocalContext.current
-    val reduce = remember(context) { animatorOff(context.contentResolver) }
+    val resolver = context.contentResolver
+    var reduce by remember(resolver) { mutableStateOf(animatorOff(resolver)) }
+    DisposableEffect(resolver) {
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                reduce = animatorOff(resolver)
+            }
+        }
+        resolver.registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE),
+            false,
+            observer,
+        )
+        resolver.registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.TRANSITION_ANIMATION_SCALE),
+            false,
+            observer,
+        )
+        reduce = animatorOff(resolver)
+        onDispose { resolver.unregisterContentObserver(observer) }
+    }
     return remember(reduce, haptics) { PocketMotion(reduce, haptics) }
 }
 

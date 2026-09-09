@@ -51,7 +51,9 @@ Long-press a row, or use **Select items**, to select several. The top bar shows 
 
 Removing an item fades the row, then Pocket deletes its copy after a short **Undo** snackbar. The file you originally shared from is left alone.
 
-Motion is press ripple, select 120–160 ms, add/remove 160–200 ms, sheets ~250 ms, and arrange lift with light haptics. It snaps off when animator duration is 0. There is no bounce, launch stagger, glass, glow, or decorative loop.
+Motion is press ripple, selection fill/outline 140 ms in both directions, add/remove 180 ms, Material sheet transitions, and arrange lift with light haptics. Sheet buttons finish dismissal before opening the next surface and ignore repeated taps while closing. Motion snaps off when animator or transition duration is 0, including changes while the screen is open. There is no bounce, launch stagger, glass, glow, or decorative loop.
+
+The interface is monochrome in both appearances, including menus, switches, dialogs, and elevated surfaces; image previews keep their original colors. Selection has a visible check and a whole-row checkbox target. Settings uses full-width radio choices and a single haptics switch row. Empty-state controls are fully visible with 48 dp targets. Open note drafts survive rotation, and image zoom/pan stays inside the preview viewport.
 
 ## What this slice includes
 

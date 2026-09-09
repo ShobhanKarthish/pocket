@@ -6,7 +6,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,7 +30,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.max
 
-private val ThumbShape = RoundedCornerShape(12.dp)
 private const val DecodePx = 192
 private val Slot = 64.dp
 
@@ -51,7 +49,7 @@ fun ItemThumb(
                 Image(
                     bitmap = bitmap!!.asImageBitmap(),
                     contentDescription = stringResource(R.string.thumbnail),
-                    modifier = slot.clip(ThumbShape),
+                    modifier = slot.clip(MaterialTheme.shapes.small),
                     contentScale = ContentScale.Crop,
                 )
             } else {

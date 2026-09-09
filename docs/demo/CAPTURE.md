@@ -17,11 +17,13 @@ Assets in this folder were taken from the **running debug app** on an emulator, 
 | `selection-dark.png` | Same selection, dark |
 | `arrange-light.png` | Light arrange, drag handles, **Done**, Move up / Move down on each row |
 | `arrange-dark.png` | Same arrange, dark |
-| `detail-image-light.png` | Image item detail, light, full preview, Close + **Share** |
+| `detail-image-light.png` | Image item detail, light, full preview, Close + **Share · Remove** |
 | `detail-image-dark.png` | Same image detail, dark |
 | `detail-text-light.png` | Text item detail, light, full note, bottom **Copy · Share** |
 | `detail-text-dark.png` | Same text detail, dark |
-| `mixed-share-choice-light.png` | Light selection **2 selected** (PNG + text) with Share sheet: **Share files / Share text / Copy text** |
+| `detail-link-light.png` | Link item detail, light, hostname + URL, bottom **Open · Copy · Share** |
+| `detail-link-dark.png` | Same link detail, dark |
+| `mixed-share-choice-light.png` | Light selection **2 selected** (PNG + text) with quiet sheet: **Share files (1) · Share text (1) · Copy text** |
 | `mixed-share-choice-dark.png` | Same mixed share choice, dark |
 
 `add-list-share-remove.mp4` is **58 s**, 720×1280, H.264, 12 fps.
@@ -64,9 +66,9 @@ Overflow **Select items**, then the first two checkboxes, produced **2 selected*
 
 ## Item detail and mixed share stills
 
-`detail-image-*.png`, `detail-text-*.png`, and `mixed-share-choice-*.png` are `adb exec-out screencap` frames from a later TCG boot of the same AVD after installing the item-detail APK. How to add was dismissed. The shelf had a PNG (`pocket-demo.png`), a text note (`Pack the bag. Do not forget socks.`), and the `example.com` link.
+`detail-image-*.png`, `detail-text-*.png`, `detail-link-*.png`, and `mixed-share-choice-*.png` are `adb exec-out screencap` frames from a later TCG boot of the same AVD after installing the freeze-chrome APK. How to add was dismissed. The shelf had a PNG (`pocket-demo.png`), a text note (`Pack the bag. Do not forget socks.`), and the `example.com` link.
 
-Tap the PNG row for a full preview with Close and Share. Tap the text row to read the note with **Copy · Share**. Long-press the PNG, tap the text row, then bottom Share. The sheet lists **Share files**, **Share text**, and **Copy text**. Selection stays at **2 selected** behind the sheet. Close and Back leave the shelf as it was. There is no Sent snackbar.
+Tap the PNG row for a full preview with Close and **Share · Remove**. Tap the text row to read the note with **Copy · Share**. Tap the link row for hostname + URL with **Open · Copy · Share**. Overflow **Select items**, check the PNG and the note, then bottom Share. The sheet is a quiet middot row: **Share files (1) · Share text (1) · Copy text**. Selection stays at **2 selected** behind the sheet. Close and Back leave the shelf as it was. There is no Sent snackbar.
 
 Pinch zoom on the image preview is in the Compose gesture handler. These stills do not show a pinch.
 

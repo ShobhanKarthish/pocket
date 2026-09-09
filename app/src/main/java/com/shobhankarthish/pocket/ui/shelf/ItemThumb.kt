@@ -41,7 +41,7 @@ fun ItemThumb(
     file: File,
     modifier: Modifier = Modifier,
 ) {
-    val slot = Modifier.size(Slot).then(modifier)
+    val slot = modifier.size(Slot)
     when (item.kind) {
         ItemKind.IMAGE -> {
             val bitmap by produceState<Bitmap?>(initialValue = null, item.id) {

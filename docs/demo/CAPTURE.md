@@ -13,9 +13,9 @@ Assets in this folder were taken from the **running debug app** on an emulator, 
 | `add-list-share-remove.mp4` | Empty light → **in-app document picker** add PNG → picker add PDF → both rows → system Share sheet → Remove PDF → Remove last PNG → empty chrome again, **no** stale “1 item” |
 | `text-link-light.png` | Light list after `ACTION_SEND text/plain`: TEXT row (first line + `TEXT · size`) + LINK row (**hostname title**, truncated URL subtitle) mixed with PDF + PNG, **4 items** |
 | `text-link-dark.png` | Same four rows, dark |
-| `selection-light.png` | Light selection, **2 selected**, Share + Remove in the bar, two TEXT rows checked, LINK row (`example.com`) unchecked |
+| `selection-light.png` | Light selection, **2 selected**, Close + Select all on top, check + outline, bottom **Share · Remove**, no Move, FAB hidden |
 | `selection-dark.png` | Same selection, dark |
-| `arrange-light.png` | Light arrange, drag handles and Move up / Move down on each row, **Done** in the bar |
+| `arrange-light.png` | Light arrange, drag handles, **Done**, Move up / Move down on each row |
 | `arrange-dark.png` | Same arrange, dark |
 
 `add-list-share-remove.mp4` is **58 s**, 720×1280, H.264, 12 fps.
@@ -54,7 +54,7 @@ Share-out of the text row opened the system sheet with that prose as `EXTRA_TEXT
 - `Pack the bag. Do not forget socks.`
 - `https://example.com/notes` (title `example.com`)
 
-Overflow **Select items**, then the first two checkboxes, produced **2 selected** with Share and Remove. Overflow **Arrange** showed the six-dot handles and the Move up / Move down buttons. Back and Done both returned to the browse bar.
+Overflow **Select items**, then the first two checkboxes, produced **2 selected**. Top chrome is Close + Select all. Selected rows use a checkbox and a darker 1 dp outline. Bottom chrome is **Share · Remove** only. FAB is hidden. Overflow **Arrange** showed six-dot handles, **Done**, and Move up / Move down on each row. Close and Done return to the browse bar.
 
 ## Video assembly
 

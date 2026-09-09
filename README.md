@@ -49,7 +49,9 @@ Long-press a row, or use **Select items**, to select several. The top bar shows 
 
 **Arrange** shows drag handles and Done. Move up / Move down stays on each row for access. Order is stored as `sortIndex` on the Room row.
 
-Removing an item fades the row, then Pocket deletes its copy after a short **Undo** snackbar. The file you originally shared from is left alone. Motion stays in the 120–250 ms freeze window and turns off when animator duration is 0.
+Removing an item fades the row, then Pocket deletes its copy after a short **Undo** snackbar. The file you originally shared from is left alone.
+
+Motion is press ripple, select 120–160 ms, add/remove 160–200 ms, sheets ~250 ms, and arrange lift with light haptics. It snaps off when animator duration is 0. There is no bounce, launch stagger, glass, glow, or decorative loop.
 
 ## What this slice includes
 
@@ -66,7 +68,7 @@ Removing an item fades the row, then Pocket deletes its copy after a short **Und
 - Mixed share choice when files and text are selected together
 - FileProvider share-out, including `ACTION_SEND_MULTIPLE`
 - Safe remove with Undo
-- Freeze motion (120–250 ms, reduce-motion, no Dynamic Color)
+- Freeze motion (BRIEF table only, reduce-motion, no Dynamic Color)
 
 ## What this slice leaves out
 

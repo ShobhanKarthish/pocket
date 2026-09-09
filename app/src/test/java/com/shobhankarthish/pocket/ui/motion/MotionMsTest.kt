@@ -8,14 +8,11 @@ import org.junit.Test
 
 class MotionMsTest {
     @Test
-    fun timingsStayInsideBriefWindow() {
+    fun timingsMatchBriefTableOnly() {
         assertTrue(MotionMs.Selection in 120..160)
         assertTrue(MotionMs.Add in 160..200)
-        assertEquals(200, MotionMs.Detail)
-        assertEquals(250, MotionMs.Sheet)
         assertTrue(MotionMs.Remove in 160..200)
-        assertTrue(MotionMs.Fab in 120..160)
-        assertEquals(8, AddSettle.value.toInt())
+        assertEquals(250, MotionMs.Sheet)
     }
 
     @Test

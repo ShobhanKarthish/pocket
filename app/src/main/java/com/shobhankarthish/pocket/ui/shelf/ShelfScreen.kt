@@ -5,14 +5,7 @@ import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -122,7 +115,6 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     val howToAddSeen by viewModel.howToAddSeen.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
-    val view = LocalView.current
     val motion = rememberPocketMotion()
     var knownIds by remember { mutableStateOf<Set<String>?>(null) }
     var showHowTo by remember { mutableStateOf(false) }
@@ -233,11 +225,6 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         knownIds = (knownIds ?: emptySet()) + items.map { it.id }.toSet()
     }
 
-    val selectingNow = mode is ShelfMode.Selecting
-    LaunchedEffect(selectingNow) {
-        if (selectingNow) lightHaptic(view)
-    }
-
     LaunchedEffect(empty, howToAddSeen, browsing) {
         if (empty && !howToAddSeen && browsing) {
             showHowTo = true
@@ -295,25 +282,17 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             )
         },
         bottomBar = {
-            AnimatedVisibility(
-                visible = mode is ShelfMode.Selecting,
-                enter = motion.barEnter(),
-                exit = motion.barExit(),
-            ) {
-                val selecting = mode as? ShelfMode.Selecting
+            val selecting = mode as? ShelfMode.Selecting
+            if (selecting != null) {
                 SelectionBottomBar(
-                    enabled = selecting?.ids?.isNotEmpty() == true,
+                    enabled = selecting.ids.isNotEmpty(),
                     onShare = { shareItems(viewModel.selectedInShelfOrder()) },
                     onRemove = { pendingRemoveSelected = true },
                 )
             }
         },
         floatingActionButton = {
-            AnimatedVisibility(
-                visible = !empty && browsing && detailItem == null,
-                enter = motion.fabEnter(),
-                exit = motion.fabExit(),
-            ) {
+            if (!empty && browsing && detailItem == null) {
                 FloatingActionButton(
                     onClick = ::pickDocument,
                     shape = FabShape,
@@ -325,70 +304,57 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             }
         },
     ) { inner ->
-        AnimatedContent(
-            targetState = empty,
-            transitionSpec = {
-                if (motion.reduce) {
-                    EnterTransition.None togetherWith ExitTransition.None
-                } else {
-                    fadeIn(motion.spec(MotionMs.Detail)) togetherWith fadeOut(motion.spec(120))
-                }
-            },
-            label = "shelf-empty",
-            modifier = Modifier.fillMaxSize(),
-        ) { isEmpty ->
-            if (isEmpty) {
-                EmptyShelf(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(inner),
-                    onAdd = ::pickDocument,
-                    onHowToAdd = { showHowTo = true },
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(inner),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 8.dp,
-                        bottom = if (browsing) 88.dp else 16.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
-                        val animateEnter = remember(item.id) {
-                            val known = knownIds
-                            known != null && item.id !in known
-                        }
-                        ItemEnter(
-                            animate = animateEnter,
+        if (empty) {
+            EmptyShelf(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(inner),
+                onAdd = ::pickDocument,
+                onHowToAdd = { showHowTo = true },
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(inner),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                    bottom = if (browsing) 88.dp else 16.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
+                    val animateEnter = remember(item.id) {
+                        val known = knownIds
+                        known != null && item.id !in known
+                    }
+                    ItemEnter(
+                        animate = animateEnter,
+                        motion = motion,
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = null,
+                            fadeOutSpec = motion.spec(MotionMs.Remove),
+                            placementSpec = motion.spec(MotionMs.Add),
+                        ),
+                    ) {
+                        ShelfItemCard(
+                            item = item,
+                            index = index,
+                            lastIndex = items.lastIndex,
+                            mode = mode,
                             motion = motion,
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = null,
-                                fadeOutSpec = motion.spec(MotionMs.Remove),
-                                placementSpec = motion.spec(MotionMs.Add),
-                            ),
-                        ) {
-                            ShelfItemCard(
-                                item = item,
-                                index = index,
-                                lastIndex = items.lastIndex,
-                                mode = mode,
-                                motion = motion,
-                                onOpen = { detailItem = item },
-                                onShare = {
-                                    shareItems(listOf(item))
-                                },
-                                onRemove = { pendingRemove = item },
-                                onToggle = { viewModel.toggleSelected(item.id) },
-                                onLongPress = { viewModel.enterSelecting(item.id) },
-                                onMove = { delta -> viewModel.moveItem(item.id, delta) },
-                                onDragTo = { to -> viewModel.moveItemTo(index, to) },
-                            )
-                        }
+                            onOpen = { detailItem = item },
+                            onShare = {
+                                shareItems(listOf(item))
+                            },
+                            onRemove = { pendingRemove = item },
+                            onToggle = { viewModel.toggleSelected(item.id) },
+                            onLongPress = { viewModel.enterSelecting(item.id) },
+                            onMove = { delta -> viewModel.moveItem(item.id, delta) },
+                            onDragTo = { to -> viewModel.moveItemTo(index, to) },
+                        )
                     }
                 }
             }
@@ -531,28 +497,20 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         }
     }
 
-    var renderedDetail by remember { mutableStateOf<ShelfItem?>(null) }
-    if (detailItem != null) renderedDetail = detailItem
-    AnimatedVisibility(
-        visible = detailItem != null,
-        enter = motion.fadeThroughEnter(),
-        exit = motion.fadeThroughExit(),
-    ) {
-        renderedDetail?.let { item ->
-            ItemDetail(
-                item = item,
-                file = viewModel.fileFor(item),
-                onClose = { detailItem = null },
-                onShare = { shareItems(listOf(item)) },
-                onRemove = { pendingRemove = item },
-                onCopied = { viewModel.note(UserMessage.Copied) },
-                onOpenFailed = { viewModel.note(UserMessage.OpenFailed(it)) },
-            )
-            SnackbarHost(
-                hostState = snackbar,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
-        }
+    detailItem?.let { item ->
+        ItemDetail(
+            item = item,
+            file = viewModel.fileFor(item),
+            onClose = { detailItem = null },
+            onShare = { shareItems(listOf(item)) },
+            onRemove = { pendingRemove = item },
+            onCopied = { viewModel.note(UserMessage.Copied) },
+            onOpenFailed = { viewModel.note(UserMessage.OpenFailed(it)) },
+        )
+        SnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 
     pendingRemove?.let { item ->
@@ -1004,43 +962,37 @@ private fun ShelfItemCard(
         modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AnimatedVisibility(
-            visible = arranging,
-            enter = motion.checkEnter(),
-            exit = motion.checkExit(),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_drag_handle),
-                    contentDescription = stringResource(R.string.drag_handle),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .pointerInput(item.id, index, lastIndex) {
-                            val step = with(density) { 80.dp.toPx() }
-                            detectVerticalDragGestures(
-                                onDragStart = { lightHaptic(view) },
-                                onDragEnd = {
-                                    dragDy = 0f
-                                    lightHaptic(view)
-                                },
-                                onDragCancel = { dragDy = 0f },
-                            ) { change, dy ->
-                                change.consume()
-                                dragDy += dy
-                                val steps = (dragDy / step).toInt()
-                                if (steps != 0) {
-                                    val target = (index + steps).coerceIn(0, lastIndex)
-                                    if (target != index) {
-                                        onDragTo(target)
-                                        dragDy -= steps * step
-                                    }
+        if (arranging) {
+            Icon(
+                painter = painterResource(R.drawable.ic_drag_handle),
+                contentDescription = stringResource(R.string.drag_handle),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(24.dp)
+                    .pointerInput(item.id, index, lastIndex) {
+                        val step = with(density) { 80.dp.toPx() }
+                        detectVerticalDragGestures(
+                            onDragStart = { lightHaptic(view) },
+                            onDragEnd = {
+                                dragDy = 0f
+                                lightHaptic(view)
+                            },
+                            onDragCancel = { dragDy = 0f },
+                        ) { change, dy ->
+                            change.consume()
+                            dragDy += dy
+                            val steps = (dragDy / step).toInt()
+                            if (steps != 0) {
+                                val target = (index + steps).coerceIn(0, lastIndex)
+                                if (target != index) {
+                                    onDragTo(target)
+                                    dragDy -= steps * step
                                 }
                             }
-                        },
-                )
-                Spacer(Modifier.width(8.dp))
-            }
+                        }
+                    },
+            )
+            Spacer(Modifier.width(8.dp))
         }
         ItemThumb(item = item, file = file)
         Spacer(Modifier.width(12.dp))
@@ -1061,45 +1013,31 @@ private fun ShelfItemCard(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        val trailing = when {
-            arranging -> "arrange"
-            selecting != null -> "select"
-            else -> "browse"
-        }
-        AnimatedContent(
-            targetState = trailing,
-            transitionSpec = {
-                if (motion.reduce) {
-                    EnterTransition.None togetherWith ExitTransition.None
-                } else {
-                    fadeIn(motion.spec(MotionMs.Selection)) togetherWith
-                        fadeOut(motion.spec(MotionMs.Selection))
-                }
-            },
-            label = "row-trailing",
-        ) { which ->
-            when (which) {
-                "select" -> Checkbox(
+        when {
+            selecting != null -> {
+                Checkbox(
                     checked = selected,
                     onCheckedChange = { onToggle() },
                 )
-                "arrange" -> Row {
-                    IconButton(onClick = { onMove(-1) }, enabled = index > 0) {
-                        Icon(
-                            Icons.Filled.KeyboardArrowUp,
-                            contentDescription = stringResource(R.string.move_up),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    IconButton(onClick = { onMove(1) }, enabled = index < lastIndex) {
-                        Icon(
-                            Icons.Filled.KeyboardArrowDown,
-                            contentDescription = stringResource(R.string.move_down),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+            }
+            arranging -> {
+                IconButton(onClick = { onMove(-1) }, enabled = index > 0) {
+                    Icon(
+                        Icons.Filled.KeyboardArrowUp,
+                        contentDescription = stringResource(R.string.move_up),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                else -> Box {
+                IconButton(onClick = { onMove(1) }, enabled = index < lastIndex) {
+                    Icon(
+                        Icons.Filled.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.move_down),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            else -> {
+                Box {
                     IconButton(onClick = { menu = true }) {
                         Icon(
                             Icons.Filled.MoreVert,

@@ -17,13 +17,19 @@ Assets in this folder were taken from the **running debug app** on an emulator, 
 | `selection-dark.png` | Same selection, dark |
 | `arrange-light.png` | Light arrange, drag handles, **Done**, Move up / Move down on each row |
 | `arrange-dark.png` | Same arrange, dark |
+| `detail-image-light.png` | Image item detail, light, full preview, Close + **Share** |
+| `detail-image-dark.png` | Same image detail, dark |
+| `detail-text-light.png` | Text item detail, light, full note, bottom **Copy · Share** |
+| `detail-text-dark.png` | Same text detail, dark |
+| `mixed-share-choice-light.png` | Light selection **2 selected** (PNG + text) with Share sheet: **Share files / Share text / Copy text** |
+| `mixed-share-choice-dark.png` | Same mixed share choice, dark |
 
 `add-list-share-remove.mp4` is **58 s**, 720×1280, H.264, 12 fps.
 
 ## Device
 
 - AVD `pocket_gapis30`: 720×1280, **API 30**, `google_apis` x86_64
-- Debug APK: `:app:assembleDebug` on the selection+arrange+batch slice
+- Debug APK: `:app:assembleDebug` on the item-detail + mixed-share slice
 - Package: `com.shobhankarthish.pocket`
 - Theme: `adb shell cmd uimode night no`
 - Accel: **TCG** (`-accel off -gpu swiftshader_indirect`). Nested KVM kernel-BUGs in `kvm_arch_vcpu_create` even after `chmod 666 /dev/kvm`.
@@ -56,6 +62,14 @@ Share-out of the text row opened the system sheet with that prose as `EXTRA_TEXT
 
 Overflow **Select items**, then the first two checkboxes, produced **2 selected**. Top chrome is Close + Select all. Selected rows use a checkbox and a darker 1 dp outline. Bottom chrome is **Share · Remove** only. FAB is hidden. Overflow **Arrange** showed six-dot handles, **Done**, and Move up / Move down on each row. Close and Done return to the browse bar.
 
+## Item detail and mixed share stills
+
+`detail-image-*.png`, `detail-text-*.png`, and `mixed-share-choice-*.png` are `adb exec-out screencap` frames from a later TCG boot of the same AVD after installing the item-detail APK. How to add was dismissed. The shelf had a PNG (`pocket-demo.png`), a text note (`Pack the bag. Do not forget socks.`), and the `example.com` link.
+
+Tap the PNG row for a full preview with Close and Share. Tap the text row to read the note with **Copy · Share**. Long-press the PNG, tap the text row, then bottom Share. The sheet lists **Share files**, **Share text**, and **Copy text**. Selection stays at **2 selected** behind the sheet. Close and Back leave the shelf as it was. There is no Sent snackbar.
+
+Pinch zoom on the image preview is in the Compose gesture handler. These stills do not show a pinch.
+
 ## Video assembly
 
 Two emulator-console WebM takes, trimmed and concatenated, then encoded to H.264:
@@ -71,4 +85,5 @@ There is a cut between the first remove and the last-item remove (same remaining
 - `am start` + MediaStore `ACTION_SEND` still cannot grant read to Pocket on API 30; that is a sender-grant problem, not the picker path.
 - No multi-shelf, no bubble (out of slice).
 - These stills do not restage `ACTION_SEND_MULTIPLE`. That path is covered by unit tests (`ShareIntakeTest`, `ShareBatchTest`, `BatchTallyTest`).
+- Item-detail stills do not show pinch zoom or an external PDF viewer. `ShareBatch.decide` covers the share matrix in unit tests.
 - APK is not committed.

@@ -197,6 +197,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val choiceSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Box(Modifier.fillMaxSize()) {
     Scaffold(
@@ -430,6 +431,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         val decide = choice.prep.decision as ShareDecision.Choose
         ModalBottomSheet(
             onDismissRequest = { pendingChoice = null },
+            sheetState = choiceSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
         ) {
             Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
@@ -457,6 +459,8 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     Text(
                         text = stringResource(R.string.share_files),
                         color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Start,
                     )
                 }
                 TextButton(
@@ -469,6 +473,8 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     Text(
                         text = stringResource(R.string.share_text),
                         color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Start,
                     )
                 }
                 TextButton(
@@ -482,9 +488,11 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     Text(
                         text = stringResource(R.string.copy_text),
                         color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Start,
                     )
                 }
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(28.dp))
             }
         }
     }

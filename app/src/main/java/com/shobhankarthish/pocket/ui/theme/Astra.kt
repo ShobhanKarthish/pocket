@@ -7,9 +7,11 @@ object Astra {
     const val HeaderMinDp = 72
     const val EmptyAddWidthDp = 136
     const val EmptyAddHeightDp = 48
+    /** PNG How-to-add glyphs → 3-button nav icon top. */
     const val EmptyDockAboveSafeDp = 28
-    /** 3-button icons sit below the 48 dp nav inset top; PNG gap is to the icons. */
-    const val EmptyNavIconInsetDp = 22
+    const val EmptyAddHowGapDp = 8
+    /** Icons sit this far below the 48 dp nav inset top (PNG, 3-button nav). */
+    const val EmptyNavIconInsetDp = 16
     const val RadiusDp = 12
     const val HowToAddMinDp = 48
     const val SelectionOutlineDp = 2

@@ -24,11 +24,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -67,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -986,20 +990,31 @@ private fun EmptyShelfDock(
                 fontWeight = FontWeight.Medium,
             )
         }
-        TextButton(
-            onClick = onHowToAdd,
-            modifier = Modifier.height(Astra.HowToAddMinDp.dp),
-            contentPadding = PaddingValues(0.dp),
+        Spacer(Modifier.height(Astra.EmptyAddHowGapDp.dp))
+        // Glyph line only (~10 dp) so Add sits 8 dp above the copy. The 48 dp
+        // tap target overflows down into the 28 dp How→nav gap.
+        Box(
+            modifier = Modifier
+                .height(10.dp)
+                .clipToBounds(),
+            contentAlignment = Alignment.CenterStart,
         ) {
+            Text(
+                text = stringResource(R.string.how_to_add),
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                modifier = Modifier.wrapContentHeight(unbounded = true),
+            )
             Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.BottomStart,
-            ) {
-                Text(
-                    text = stringResource(R.string.how_to_add),
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-            }
+                modifier = Modifier
+                    .matchParentSize()
+                    .requiredSizeIn(
+                        minWidth = Astra.HowToAddMinDp.dp,
+                        minHeight = Astra.HowToAddMinDp.dp,
+                    )
+                    .clickable(role = Role.Button, onClick = onHowToAdd),
+            )
         }
     }
 }

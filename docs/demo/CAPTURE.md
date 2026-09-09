@@ -49,7 +49,7 @@ How to add was already dismissed. Populated / selection / arrange / detail / mix
 
 Header browse: title 20/28, count inside the min-72 dp bar, text **Add**. Empty docks **Add items** 136×48 r12 + **How to add** ~28 dp above the safe inset, not under the copy. Resting rows are unboxed with bare glyph slots. Selected rows: tonal fill + 2 dp r12 outline + **24 dp circle** check. Arrange keeps Move up / Move down with readable titles. Add sheet: **Add items** / **Choose files** / **Add text**. Mixed share: Material sheet headed **Share selected items**. Settings: Appearance System/Light/Dark, Haptics, Storage + Clear shelf, Privacy. Motion unchanged (BRIEF table only).
 
-Empty stills were recaptured after docking **Add items** + **How to add** ~28 dp above the visible 3-button nav icons (PNG-measured at 420 dpi). Shelf was already empty. Re-seed is not in git.
+Empty stills were recaptured after packing the empty dock as one block: **Add items** 136×48, **8 dp**, **How to add**, then ~28 dp to the visible 3-button nav icons (PNG-measured at 420 dpi). Shelf was already empty. Re-seed is not in git.
 
 ## Gaps
 

@@ -13,7 +13,9 @@ import com.shobhankarthish.pocket.shelf.ShelfItem
 import com.shobhankarthish.pocket.shelf.ShelfMode
 import com.shobhankarthish.pocket.shelf.ShelfOrder
 import com.shobhankarthish.pocket.shelf.ShelfRepository
+import com.shobhankarthish.pocket.shelf.prefs.Appearance
 import com.shobhankarthish.pocket.shelf.prefs.HowToAddPrefs
+import com.shobhankarthish.pocket.shelf.prefs.SettingsPrefs
 import com.shobhankarthish.pocket.shelf.toInboundFile
 import com.shobhankarthish.pocket.shelf.RemovalHold
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +36,7 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: ShelfRepository = container.repository
     private val ingestor: ItemIngestor = container.ingestor
     private val howToAddPrefs: HowToAddPrefs = container.howToAddPrefs
+    private val settingsPrefs: SettingsPrefs = container.settingsPrefs
 
     private val hold = MutableStateFlow<RemovalHold?>(null)
     private var nextRemovalToken = 1
@@ -50,6 +53,18 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     val howToAddSeen: StateFlow<Boolean> = howToAddPrefs.seen.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        true,
+    )
+
+    val appearance: StateFlow<Appearance> = settingsPrefs.appearance.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        Appearance.System,
+    )
+
+    val haptics: StateFlow<Boolean> = settingsPrefs.haptics.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
         true,
@@ -192,6 +207,18 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
 
     fun markHowToAddSeen() {
         viewModelScope.launch { howToAddPrefs.markSeen() }
+    }
+
+    fun setAppearance(value: Appearance) {
+        viewModelScope.launch { settingsPrefs.setAppearance(value) }
+    }
+
+    fun setHaptics(enabled: Boolean) {
+        viewModelScope.launch { settingsPrefs.setHaptics(enabled) }
+    }
+
+    fun clearShelf() {
+        requestRemove(items.value)
     }
 
     fun note(message: UserMessage) {

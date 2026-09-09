@@ -28,16 +28,16 @@ object MotionMs {
     const val Sheet = 250
 }
 
-class PocketMotion(val reduce: Boolean) {
+class PocketMotion(val reduce: Boolean, val haptics: Boolean = true) {
     fun <T> spec(ms: Int): FiniteAnimationSpec<T> =
         if (reduce) snap() else tween(ms, easing = FastOutSlowInEasing)
 }
 
 @Composable
-fun rememberPocketMotion(): PocketMotion {
+fun rememberPocketMotion(haptics: Boolean = true): PocketMotion {
     val context = LocalContext.current
     val reduce = remember(context) { animatorOff(context.contentResolver) }
-    return remember(reduce) { PocketMotion(reduce) }
+    return remember(reduce, haptics) { PocketMotion(reduce, haptics) }
 }
 
 fun animatorOff(resolver: ContentResolver): Boolean {
@@ -47,13 +47,14 @@ fun animatorOff(resolver: ContentResolver): Boolean {
         scale(Settings.Global.TRANSITION_ANIMATION_SCALE) == 0f
 }
 
-fun lightHaptic(view: View) {
-    val enabled = Settings.System.getInt(
+fun lightHaptic(view: View, enabled: Boolean = true) {
+    if (!enabled) return
+    val systemOn = Settings.System.getInt(
         view.context.contentResolver,
         Settings.System.HAPTIC_FEEDBACK_ENABLED,
         1,
     ) != 0
-    if (!enabled) return
+    if (!systemOn) return
     ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CLOCK_TICK)
 }
 

@@ -263,7 +263,7 @@ private fun DetailActions(
         ItemKind.IMAGE -> listOf(R.string.share to onShare, R.string.remove to onRemove)
         ItemKind.TEXT -> listOf(R.string.copy to onCopy, R.string.share to onShare)
         ItemKind.LINK -> listOf(
-            R.string.open to onOpen,
+            R.string.open_link to onOpen,
             R.string.copy to onCopy,
             R.string.share to onShare,
         )

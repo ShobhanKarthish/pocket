@@ -14,6 +14,9 @@ class AstraTest {
         assertEquals(12, Astra.RadiusDp)
         assertEquals(48, Astra.HowToAddMinDp)
         assertEquals(2, Astra.SelectionOutlineDp)
+        assertEquals(24, Astra.SelectCircleDp)
         assertEquals(0, Astra.AddHideMs)
+        assertEquals(16, Astra.SheetGroupGapDp)
+        assertEquals(56, Astra.SheetRowDp)
     }
 }

@@ -8,8 +8,10 @@ import com.shobhankarthish.pocket.shelf.ShelfFileStore
 import com.shobhankarthish.pocket.shelf.ShelfRepository
 import com.shobhankarthish.pocket.shelf.db.PocketDatabase
 import com.shobhankarthish.pocket.shelf.prefs.HowToAddPrefs
+import com.shobhankarthish.pocket.shelf.prefs.SettingsPrefs
 
 private val Context.howToAddStore by preferencesDataStore(name = "how_to_add")
+private val Context.settingsStore by preferencesDataStore(name = "settings")
 
 class AppContainer(context: Context) {
     private val app = context.applicationContext
@@ -23,4 +25,5 @@ class AppContainer(context: Context) {
     val repository = ShelfRepository(database.shelfItemDao(), fileStore)
     val ingestor = ItemIngestor(fileStore, repository)
     val howToAddPrefs = HowToAddPrefs(app.howToAddStore)
+    val settingsPrefs = SettingsPrefs(app.settingsStore)
 }

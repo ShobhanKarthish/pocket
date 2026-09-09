@@ -10,5 +10,8 @@ object Astra {
     const val RadiusDp = 12
     const val HowToAddMinDp = 48
     const val SelectionOutlineDp = 2
+    const val SelectCircleDp = 24
     const val AddHideMs = 0
+    const val SheetGroupGapDp = 16
+    const val SheetRowDp = 56
 }

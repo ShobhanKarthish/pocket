@@ -3,7 +3,6 @@ package com.shobhankarthish.pocket.ui.shelf
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,6 +33,7 @@ import kotlin.math.max
 
 private val ThumbShape = RoundedCornerShape(12.dp)
 private const val DecodePx = 192
+private val Slot = 64.dp
 
 @Composable
 fun ItemThumb(
@@ -41,11 +41,7 @@ fun ItemThumb(
     file: File,
     modifier: Modifier = Modifier,
 ) {
-    val shapeModifier = modifier
-        .size(64.dp)
-        .clip(ThumbShape)
-        .background(MaterialTheme.colorScheme.surfaceVariant)
-
+    val slot = Modifier.size(Slot).then(modifier)
     when (item.kind) {
         ItemKind.IMAGE -> {
             val bitmap by produceState<Bitmap?>(initialValue = null, item.id) {
@@ -55,18 +51,15 @@ fun ItemThumb(
                 Image(
                     bitmap = bitmap!!.asImageBitmap(),
                     contentDescription = stringResource(R.string.thumbnail),
-                    modifier = shapeModifier,
+                    modifier = slot.clip(ThumbShape),
                     contentScale = ContentScale.Crop,
                 )
             } else {
-                GlyphThumb(
-                    modifier = shapeModifier,
-                    painter = painterResource(R.drawable.ic_shelf),
-                )
+                GlyphThumb(modifier = slot, painter = painterResource(R.drawable.ic_shelf))
             }
         }
         ItemKind.PDF -> {
-            Box(modifier = shapeModifier, contentAlignment = Alignment.Center) {
+            Box(modifier = slot, contentAlignment = Alignment.Center) {
                 Icon(
                     painter = painterResource(R.drawable.ic_pdf),
                     contentDescription = null,
@@ -85,11 +78,11 @@ fun ItemThumb(
             }
         }
         ItemKind.TEXT -> GlyphThumb(
-            modifier = shapeModifier,
+            modifier = slot,
             painter = painterResource(R.drawable.ic_text),
         )
         ItemKind.LINK -> GlyphThumb(
-            modifier = shapeModifier,
+            modifier = slot,
             painter = painterResource(R.drawable.ic_link),
         )
     }

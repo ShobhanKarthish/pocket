@@ -33,7 +33,7 @@ When a file share arrives, Pocket reads the content URI while the grant is still
 
 A `text/plain` share uses `EXTRA_TEXT`. A single http(s) URL becomes a link item whose list title is the hostname and whose subtitle is the truncated URL. Any other non-empty string becomes a text item (first line + `TEXT · size`). Both write UTF-8 into `filesDir/shelf/` and a Room row. You can also add a note from the shelf menu.
 
-You can also tap **Add** and pick one image or PDF with the system document picker, or add a note from the Add sheet. Pocket copies that file the same way. It does not take a persistable URI permission.
+You can also tap **Add** (or **Add items** on an empty shelf) and choose files with the system document picker, or add a note from the Add sheet. Pocket copies that file the same way. It does not take a persistable URI permission.
 
 ## Share out (FileProvider)
 
@@ -41,9 +41,9 @@ The FileProvider authority is `com.shobhankarthish.pocket.files`. Paths are limi
 
 A single file or one text/link still uses `ACTION_SEND`. Several images use `ACTION_SEND_MULTIPLE` with `image/*` or one shared image MIME. Several PDFs use `application/pdf`. Images and PDFs together use `*/*` and Pocket warns that some apps may not accept the mix.
 
-Text and links share as one `text/plain` body in shelf order. Files plus text or links open a sheet: **Share files (n) · Share text (n) · Copy text**. Pocket does not drop the text, attach it silently onto the file send, show Sent, or clear the selection after share.
+Text and links share as one `text/plain` body in shelf order. Files plus text or links open a sheet headed **Share selected items**, with **Share files (n)**, **Share text (n)**, and **Copy text** as rows. Pocket does not drop the text, attach it silently onto the file send, show Sent, or clear the selection after share.
 
-Tap a row to open it. Images fill the screen and pinch to zoom, with **Share · Remove**. Text is **Copy · Share**. A link is **Open · Copy · Share**. A PDF opens in another app if one is installed. If none is, Pocket says so and Share stays.
+Tap a row to open it. Images fill the screen and pinch to zoom, with **Share · Remove**. Text is **Copy · Share**. A link is **Open link · Copy · Share**. A PDF opens in another app if one is installed. If none is, Pocket says so and Share stays.
 
 Long-press a row, or use **Select items**, to select several. The top bar shows **N selected** with Close and Select all. Share and Remove sit in the bottom bar. There is no Move on a single shelf. Close leaves selection. Header **Add** is hidden while selecting or arranging.
 
@@ -66,7 +66,7 @@ Motion is press ripple, select 120–160 ms, add/remove 160–200 ms, sheets ~25
 - Arrange with drag handles and Move up / Move down
 - Item detail: image preview, text and link read, PDF handoff
 - Mixed share choice when files and text are selected together
-- Settings (system appearance, How to add, version)
+- Settings (Appearance System/Light/Dark, Haptics, Storage + Clear shelf, Privacy)
 - FileProvider share-out, including `ACTION_SEND_MULTIPLE`
 - Safe remove with Undo
 - Astra redesign freeze §12 (unboxed rows, header Add, no FAB)

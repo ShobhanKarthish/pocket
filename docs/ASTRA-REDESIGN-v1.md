@@ -21,12 +21,12 @@ Motion is unchanged: freeze §5 / BRIEF §8 timings only. No bounce, stagger, gl
 
 - **No** mark / icon well.
 - Headline and body **left-aligned**.
-- Docked **Add** **136 × 48 dp**, radius **12**. Opens the Add sheet (R7).
-- **How to add** control **≥ 48 dp** tall.
+- Docked **Add items** **136 × 48 dp**, radius **12**, at the **bottom** of the empty canvas (not under the copy). Opens the Add sheet (R7).
+- **How to add** control **≥ 48 dp** tall, docked with Add items.
 
 ## R3 Resting rows
 
-Unboxed. No container fill, no row radius, no 12 dp vertical gap, no resting borders. Thumb stays 12 dp. Rows sit on `background` with internal padding only.
+Unboxed. No container fill, no row radius, no 12 dp vertical gap, no resting borders. Glyph slots are **bare** (no grey tile fill). Image thumbs stay clipped photos. Rows sit on `background` with internal padding only.
 
 ## R4 Add
 
@@ -37,9 +37,9 @@ Unboxed. No container fill, no row radius, no 12 dp vertical gap, no resting bor
 
 ## R5 Selection and arrange
 
-- Selected row: tonal `surfaceVariant` fill + **2 dp** essential outline, radius **12**, plus checkbox. Outline color animates 140 ms (BRIEF).
-- Unselected rows while selecting stay unboxed; checkbox only.
-- Arrange: drag handles **and** Move up / Move down (not drag-only). Lift uses tonal fill. Done in the header.
+- Selected row: tonal `surfaceVariant` fill + **2 dp** essential outline, radius **12**, plus a **24 dp circle** check (filled when selected). Outline color animates 140 ms (BRIEF).
+- Unselected rows while selecting stay unboxed; empty 24 dp circle only.
+- Arrange: drag handles **and** Move up / Move down (not drag-only). Titles stay readable. Lift uses tonal fill. Done in the header.
 
 ## R6 Detail
 
@@ -51,7 +51,7 @@ Bottom quiet 56 dp middot row, 1 dp divider:
 | --- | --- |
 | Image | Share · Remove |
 | Text | Copy · Share |
-| Link | Open · Copy · Share |
+| Link | Open link · Copy · Share |
 | PDF | Open · Share |
 
 Pinch-zoom on images. Confirm remove. Close if the item is gone.
@@ -60,22 +60,23 @@ Pinch-zoom on images. Confirm remove. Close if the item is gone.
 
 Quiet. No grabber. Sheet motion ~250 ms (Material default). Radius 12 on filled controls (not pills).
 
-- **Add:** Image or PDF · Text or a link (56 dp rows). Image or PDF opens the document picker. Text or a link opens the add-text sheet.
+- **Add:** Heading **Add items**. Options **Choose files** / **Add text** (56 dp rows). Choose files opens the document picker. Add text opens the add-text sheet.
 - **Add text:** title, field, Cancel / Add.
 - **How to add:** title 20/28, body, Got it 48 dp × radius 12.
-- **Mixed share:** Share files (n) · Share text (n) · Copy text. Counts on the labels. No title. Selection stays.
+- **Mixed share:** Material sheet. Heading **Share selected items**. Body **Files and text are shared separately.** Then **16 dp** group gap and 56 dp rows: Share files (n) / Share text (n) / Copy text. Not a middot bar. Selection stays.
 
 ## R8 Settings
 
 Overflow **Settings**. Full-screen, same 72 dp header, Close.
 
-Unboxed rows:
+Flat sections on that screen:
 
-- **Appearance** — Follows system (no in-app toggle, no Dynamic Color).
-- **How to add** — opens the How to add sheet.
-- **Version** — `versionName`.
+- **Appearance** — System / Light / Dark (no Dynamic Color).
+- **Haptics** — on/off for Pocket’s arrange lift.
+- **Storage** — shelf size, **Clear shelf** (confirm; same delete/Undo path).
+- **Privacy** — on-device, no account, no INTERNET.
 
-No account row.
+No How-to-add / Version-only stub.
 
 ## Fail
 

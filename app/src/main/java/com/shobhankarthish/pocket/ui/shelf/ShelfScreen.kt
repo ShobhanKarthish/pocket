@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -41,7 +42,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -83,8 +83,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.shobhankarthish.pocket.BuildConfig
 import com.shobhankarthish.pocket.R
+import com.shobhankarthish.pocket.shelf.ByteSizeFormatter
 import com.shobhankarthish.pocket.shelf.ShareDecision
 import com.shobhankarthish.pocket.shelf.ShareOutcome
 import com.shobhankarthish.pocket.shelf.ShareOut
@@ -112,9 +112,11 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     val empty = itemCount == 0
     val browsing = mode is ShelfMode.Browse
     val howToAddSeen by viewModel.howToAddSeen.collectAsStateWithLifecycle()
+    val haptics by viewModel.haptics.collectAsStateWithLifecycle()
+    val appearance by viewModel.appearance.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
-    val motion = rememberPocketMotion()
+    val motion = rememberPocketMotion(haptics)
     var knownIds by remember { mutableStateOf<Set<String>?>(null) }
     var showHowTo by remember { mutableStateOf(false) }
     var showAddSheet by remember { mutableStateOf(false) }
@@ -415,23 +417,29 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding(),
+                    .navigationBarsPadding()
+                    .padding(bottom = 8.dp),
             ) {
+                Text(
+                    text = stringResource(R.string.add_items),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                )
                 QuietSheetRow(
-                    label = stringResource(R.string.add_image_or_pdf),
+                    label = stringResource(R.string.choose_files),
                     onClick = {
                         showAddSheet = false
                         pickDocument()
                     },
                 )
                 QuietSheetRow(
-                    label = stringResource(R.string.add_text_or_link),
+                    label = stringResource(R.string.add_text),
                     onClick = {
                         showAddSheet = false
                         showAddText = true
                     },
                 )
-                Spacer(Modifier.height(8.dp))
             }
         }
     }
@@ -525,9 +533,8 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             onDismissRequest = { pendingChoice = null },
             sheetState = choiceSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
-            dragHandle = null,
         ) {
-            MixedShareBar(
+            MixedShareSheet(
                 fileCount = decide.fileCount(),
                 textCount = decide.textCount(),
                 mixedMimeWarning = (decide.files as? ShareDecision.SendFiles)?.mixedMimeWarning == true,
@@ -566,9 +573,14 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
 
     if (showSettings) {
         SettingsScreen(
-            versionName = BuildConfig.VERSION_NAME,
+            appearance = appearance,
+            haptics = haptics,
+            storageLabel = ByteSizeFormatter.format(items.sumOf { it.byteSize }),
+            canClear = items.isNotEmpty(),
+            onAppearance = viewModel::setAppearance,
+            onHaptics = viewModel::setHaptics,
+            onClearShelf = viewModel::clearShelf,
             onClose = { showSettings = false },
-            onHowToAdd = { showHowTo = true },
         )
         SnackbarHost(
             hostState = snackbar,
@@ -616,7 +628,7 @@ private fun QuietSheetRow(label: String, onClick: () -> Unit) {
         color = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
+            .heightIn(min = Astra.SheetRowDp.dp)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 24.dp, vertical = 16.dp),
     )
@@ -792,7 +804,7 @@ private fun RowScope.ArrangingBar(onDone: () -> Unit) {
 }
 
 @Composable
-private fun MixedShareBar(
+private fun MixedShareSheet(
     fileCount: Int,
     textCount: Int,
     mixedMimeWarning: Boolean,
@@ -808,41 +820,42 @@ private fun MixedShareBar(
     Column(
         Modifier
             .fillMaxWidth()
-            .navigationBarsPadding(),
+            .navigationBarsPadding()
+            .padding(bottom = 8.dp),
     ) {
+        Text(
+            text = stringResource(R.string.share_selected_items),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.share_files_and_text_separately),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        )
         if (mixedMimeWarning) {
             Text(
                 text = stringResource(R.string.share_mixed),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
         }
-        QuietHairline()
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            actions.forEachIndexed { index, (label, action) ->
-                if (index > 0) {
-                    Text(
-                        text = "\u00B7",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                    )
-                }
-                Text(
-                    text = label,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier.clickable(role = Role.Button, onClick = action),
-                )
-            }
+        Spacer(Modifier.height(Astra.SheetGroupGapDp.dp))
+        actions.forEach { (label, action) ->
+            Text(
+                text = label,
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Astra.SheetRowDp.dp)
+                    .clickable(role = Role.Button, onClick = action)
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+            )
         }
     }
 }
@@ -915,14 +928,15 @@ private fun EmptyShelf(
     onHowToAdd: () -> Unit,
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 16.dp),
+        modifier = modifier
+            .padding(horizontal = 16.dp)
+            .navigationBarsPadding(),
         horizontalAlignment = Alignment.Start,
     ) {
         Column(
             Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.Center,
+                .fillMaxWidth()
+                .padding(top = 16.dp),
             horizontalAlignment = Alignment.Start,
         ) {
             Text(
@@ -937,6 +951,7 @@ private fun EmptyShelf(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Spacer(Modifier.weight(1f))
         Button(
             onClick = onAdd,
             modifier = Modifier.size(
@@ -951,7 +966,7 @@ private fun EmptyShelf(
             ),
         ) {
             Text(
-                text = stringResource(R.string.add),
+                text = stringResource(R.string.add_items),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
             )
@@ -966,7 +981,7 @@ private fun EmptyShelf(
                 color = MaterialTheme.colorScheme.onBackground,
             )
         }
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -1054,10 +1069,10 @@ private fun ShelfItemRow(
                     .pointerInput(item.id, index, lastIndex) {
                         val step = with(density) { 80.dp.toPx() }
                         detectVerticalDragGestures(
-                            onDragStart = { lightHaptic(view) },
+                            onDragStart = { lightHaptic(view, motion.haptics) },
                             onDragEnd = {
                                 dragDy = 0f
-                                lightHaptic(view)
+                                lightHaptic(view, motion.haptics)
                             },
                             onDragCancel = { dragDy = 0f },
                         ) { change, dy ->
@@ -1076,7 +1091,11 @@ private fun ShelfItemRow(
             )
             Spacer(Modifier.width(8.dp))
         }
-        ItemThumb(item = item, file = file)
+        ItemThumb(
+            item = item,
+            file = file,
+            modifier = if (arranging) Modifier.size(40.dp) else Modifier,
+        )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
@@ -1097,26 +1116,19 @@ private fun ShelfItemRow(
         }
         when {
             selecting != null -> {
-                Checkbox(
-                    checked = selected,
-                    onCheckedChange = { onToggle() },
-                )
+                SelectCircle(selected = selected, onClick = onToggle)
             }
             arranging -> {
-                IconButton(onClick = { onMove(-1) }, enabled = index > 0) {
-                    Icon(
-                        Icons.Filled.KeyboardArrowUp,
-                        contentDescription = stringResource(R.string.move_up),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                IconButton(onClick = { onMove(1) }, enabled = index < lastIndex) {
-                    Icon(
-                        Icons.Filled.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.move_down),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                CompactMoveButton(
+                    up = true,
+                    enabled = index > 0,
+                    onClick = { onMove(-1) },
+                )
+                CompactMoveButton(
+                    up = false,
+                    enabled = index < lastIndex,
+                    onClick = { onMove(1) },
+                )
             }
             else -> {
                 Box {
@@ -1146,5 +1158,36 @@ private fun ShelfItemRow(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SelectCircle(selected: Boolean, onClick: () -> Unit) {
+    val color = MaterialTheme.colorScheme.onSurface
+    Box(
+        modifier = Modifier
+            .size(Astra.SelectCircleDp.dp)
+            .clip(CircleShape)
+            .background(if (selected) color else Color.Transparent)
+            .border(Astra.SelectionOutlineDp.dp, color, CircleShape)
+            .clickable(role = Role.Checkbox, onClick = onClick),
+    )
+}
+
+@Composable
+private fun CompactMoveButton(up: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.38f)
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (up) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+            contentDescription = stringResource(if (up) R.string.move_up else R.string.move_down),
+            tint = tint,
+            modifier = Modifier.size(24.dp),
+        )
     }
 }

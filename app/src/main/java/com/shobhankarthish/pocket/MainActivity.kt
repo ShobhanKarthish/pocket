@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.toArgb
@@ -23,20 +24,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(
-                LightBackground.toArgb(),
-                DarkBackground.toArgb(),
-            ),
-            navigationBarStyle = SystemBarStyle.auto(
-                LightBackground.toArgb(),
-                DarkBackground.toArgb(),
-            ),
-        )
+        applySystemBars(dark = false)
         pendingShare.value = peekShare(intent)
         setContent {
-            PocketTheme {
-                val viewModel: ShelfViewModel = viewModel()
+            val viewModel: ShelfViewModel = viewModel()
+            val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+            val dark = appearance.isDark(isSystemInDarkTheme())
+            LaunchedEffect(dark) { applySystemBars(dark) }
+            PocketTheme(darkTheme = dark) {
                 val share by pendingShare.collectAsStateWithLifecycle()
                 LaunchedEffect(share) {
                     val incoming = share ?: return@LaunchedEffect
@@ -57,5 +52,20 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingShare.value = peekShare(intent)
+    }
+
+    private fun applySystemBars(dark: Boolean) {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                LightBackground.toArgb(),
+                DarkBackground.toArgb(),
+                detectDarkMode = { _ -> dark },
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                LightBackground.toArgb(),
+                DarkBackground.toArgb(),
+                detectDarkMode = { _ -> dark },
+            ),
+        )
     }
 }

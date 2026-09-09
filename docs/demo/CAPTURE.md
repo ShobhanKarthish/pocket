@@ -60,11 +60,11 @@ Share-out of the text row opened the system sheet with that prose as `EXTRA_TEXT
 
 ## Item detail and mixed share stills
 
-`detail-image-*.png`, `detail-text-*.png`, `detail-link-*.png`, and `mixed-share-choice-*.png` are `adb exec-out screencap` frames from a later TCG boot of the same AVD after installing the freeze-chrome APK. How to add was dismissed. The shelf had a PNG (`pocket-demo.png`), a text note (`Pack the bag. Do not forget socks.`), and the `example.com` link.
+`detail-image-*.png`, `detail-text-*.png`, `detail-link-*.png`, and `mixed-share-choice-*.png` are `adb exec-out screencap` frames recaptured after the BRIEF-table motion trim. How to add was dismissed. The shelf had a PNG (`pocket-demo.png`), a text note (`Pack the bag. Do not forget socks.`), and the `example.com` link.
 
 Tap the PNG row for a full preview with Close and **Share · Remove**. Tap the text row to read the note with **Copy · Share**. Tap the link row for hostname + URL with **Open · Copy · Share**. Overflow **Select items**, check the PNG and the note, then bottom Share. The sheet is a quiet middot row: **Share files (1) · Share text (1) · Copy text**. Selection stays at **2 selected** behind the sheet. Close and Back leave the shelf as it was. There is no Sent snackbar.
 
-Pinch zoom on the image preview is in the Compose gesture handler. These stills do not show a pinch.
+Pinch zoom on the image preview is in the Compose gesture handler. These stills do not show a pinch. Emulator `screenrecord` on this TCG AVD paints a blank white frame, so motion is not in a clip; rest chrome is the stills, timings are the unit-tested BRIEF table.
 
 ## Video assembly
 

@@ -2,9 +2,23 @@
 
 Collect now. Share when you're ready.
 
-Pocket is a temporary local tray on Android. Share an image, PDF, note, or http(s) link from another app. Pocket copies the payload into its own storage, lists the item, and lets you share that copy out later. The original file is never modified.
+Pocket is a temporary local tray on Android. A floating bubble sits over other apps so you can drop things in, or tap to share them out. Share from another app still works. Pocket copies images, PDFs, text, and http(s) links into its own storage, lists them on one shelf, and lets you share those copies later. The original file is never modified.
 
 This build is one shelf, on-device only. There is no account, no server, and the app does not request the `INTERNET` permission.
+
+## Floating bubble
+
+The bubble is the main interaction. It uses `SYSTEM_ALERT_WINDOW` (`TYPE_APPLICATION_OVERLAY`) plus a special-use foreground service so it can stay up after you leave Pocket.
+
+First launch asks for **Display over other apps**. Without that permission the shelf still works; Settings can turn the bubble on later.
+
+Tap the bubble to open a compact tray: open the full shelf, share everything, clear, or hide. Drag it; it snaps to the left or right edge and remembers that placement across rotation. Hide from the tray, the notification, or Settings.
+
+### Drag and drop (honest)
+
+Pocket listens for system drag events on the overlay and, when Android delivers them, copies the payload the same way as a share. The bubble expands into a drop shelf on `ACTION_DRAG_STARTED`.
+
+Cross-app drop onto an overlay is **not reliable** on Android. Many apps never start a global drag, and some versions never dispatch `DragEvent` to `TYPE_APPLICATION_OVERLAY` windows. Pocket does not fake an in-app-only demo and does not use Accessibility to watch other apps. If a drop does not land, use **Share → Pocket** — that path is the one that always works.
 
 ## Build and install a debug APK
 
@@ -19,7 +33,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
-Unit tests for ingest, mime allow-list, delete, selection order, arrange, and the share matrix:
+Unit tests for ingest, mime allow-list, delete, selection order, arrange, the share matrix, bubble placement, and overlay drop planning:
 
 ```bash
 ./gradlew :app:testDebugUnitTest
@@ -41,7 +55,7 @@ The FileProvider authority is `com.shobhankarthish.pocket.files`. Paths are limi
 
 A single file or one text/link still uses `ACTION_SEND`. Several images use `ACTION_SEND_MULTIPLE` with `image/*` or one shared image MIME. Several PDFs use `application/pdf`. Images and PDFs together use `*/*` and Pocket warns that some apps may not accept the mix.
 
-Text and links share as one `text/plain` body in shelf order. Files plus text or links open a sheet headed **Share selected items**, with **Share files (n)**, **Share text (n)**, and **Copy text** as rows. Pocket does not drop the text, attach it silently onto the file send, show Sent, or clear the selection after share.
+Text and links share as one `text/plain` body in shelf order. Files plus text or links open a sheet headed **Share selected items**, with **Share files (n)**, **Share text (n)**, and **Copy text** as rows. Pocket does not drop the text, attach it silently onto the file send, show Sent, or clear the selection after share. From the bubble, mixed files+text opens the full shelf so that sheet can run.
 
 Tap a row to open it. Images fill the screen and pinch to zoom, with **Share · Remove**. Text is **Copy · Share**. A link is **Open link · Copy · Share**. A PDF opens in another app if one is installed. If none is, Pocket says so and Share stays.
 
@@ -49,14 +63,20 @@ Long-press a row, or use **Select items**, to select several. The top bar shows 
 
 **Arrange** shows drag handles, **Done**, and Move up / Move down on each row. Order is stored as `sortIndex` on the Room row.
 
-Removing an item fades the row, then Pocket deletes its copy after a short **Undo** snackbar. The file you originally shared from is left alone.
+Removing an item fades the row, then Pocket deletes its copy after a short **Undo** snackbar. The file you originally shared from is left alone. Clearing from the bubble asks first, then deletes without that snackbar.
 
-Motion is press ripple, selection fill/outline 140 ms in both directions, add/remove 180 ms, Material sheet transitions, and arrange lift with light haptics. Sheet buttons finish dismissal before opening the next surface and ignore repeated taps while closing. Motion snaps off when animator or transition duration is 0, including changes while the screen is open. There is no bounce, launch stagger, glass, glow, or decorative loop.
+Motion is press ripple, selection fill/outline 140 ms in both directions, add/remove 180 ms, Material sheet transitions, and arrange lift with light haptics. The bubble uses the same light haptic on tap, snap, and drop. Sheet buttons finish dismissal before opening the next surface and ignore repeated taps while closing. Motion snaps off when animator or transition duration is 0, including changes while the screen is open. There is no bounce, launch stagger, glass, glow, or decorative loop.
 
-The interface is monochrome in both appearances, including menus, switches, dialogs, and elevated surfaces; image previews keep their original colors. Selection has a visible check and a whole-row checkbox target. Settings uses full-width radio choices and a single haptics switch row. Empty-state controls are fully visible with 48 dp targets. Open note drafts survive rotation, and image zoom/pan stays inside the preview viewport.
+The interface is monochrome in both appearances, including menus, switches, dialogs, and elevated surfaces; image previews keep their original colors. Selection has a visible check and a whole-row checkbox target. Settings uses full-width radio choices, a haptics switch, a floating-bubble switch, and a single privacy block. Empty-state controls are fully visible with 48 dp targets. Open note drafts survive rotation, and image zoom/pan stays inside the preview viewport.
 
 ## What this slice includes
 
+- Always-on floating bubble over other apps (`TYPE_APPLICATION_OVERLAY`)
+- First-run Display over other apps flow, Settings toggle, hide/show
+- Draggable bubble that snaps to an edge and remembers placement
+- Tap tray: open shelf, share all, clear, hide
+- Drop target on the overlay when Android delivers drag events
+- Share-sheet ingest (the reliable cross-app path)
 - One persistent shelf
 - Receive one image, PDF, text note, or http(s) link
 - Receive a batch of images and/or PDFs through `ACTION_SEND_MULTIPLE`
@@ -68,7 +88,7 @@ The interface is monochrome in both appearances, including menus, switches, dial
 - Arrange with drag handles and Move up / Move down
 - Item detail: image preview, text and link read, PDF handoff
 - Mixed share choice when files and text are selected together
-- Settings (Appearance System/Light/Dark, Haptics, Storage + Clear shelf, Privacy)
+- Settings (Appearance System/Light/Dark, Haptics, Floating bubble, Storage + Clear shelf, Privacy)
 - FileProvider share-out, including `ACTION_SEND_MULTIPLE`
 - Safe remove with Undo
 - Astra redesign freeze §12 (unboxed rows, header Add, no FAB)
@@ -77,6 +97,6 @@ The interface is monochrome in both appearances, including menus, switches, dial
 ## What this slice leaves out
 
 - Multiple shelves, a shelf switcher, move, folders, tags, search
-- Floating bubble, overlays, Accessibility, clipboard monitoring
+- Accessibility watching, clipboard monitoring
 - Video, audio
 - OCR, AI, ZIP, cloud, accounts, ads, analytics

@@ -119,7 +119,11 @@ private val SelectionShape = RoundedCornerShape(Astra.RadiusDp.dp)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ShelfScreen(viewModel: ShelfViewModel) {
+fun ShelfScreen(
+    viewModel: ShelfViewModel,
+    overlayAllowed: Boolean,
+    onAllowOverlay: () -> Unit,
+) {
     val items by viewModel.items.collectAsStateWithLifecycle()
     val mode by viewModel.mode.collectAsStateWithLifecycle()
     val itemCount = items.size
@@ -128,6 +132,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
     val howToAddSeen by viewModel.howToAddSeen.collectAsStateWithLifecycle()
     val haptics by viewModel.haptics.collectAsStateWithLifecycle()
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+    val bubbleEnabled by viewModel.bubbleEnabled.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     val motion = rememberPocketMotion(haptics)
@@ -335,25 +340,41 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
             }
         },
     ) { inner ->
-        if (empty) {
-            EmptyShelf(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(inner),
-            )
-        } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(inner),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 8.dp,
-                    bottom = 16.dp,
-                ),
-            ) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(inner),
+        ) {
+            if (bubbleEnabled && !overlayAllowed && browsing) {
+                Text(
+                    text = stringResource(R.string.overlay_denied_banner),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button, onClick = onAllowOverlay)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                )
+            }
+            if (empty) {
+                EmptyShelf(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                )
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 8.dp,
+                        bottom = 16.dp,
+                    ),
+                ) {
                 itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
                     val animateEnter = remember(item.id) {
                         val known = knownIds
@@ -391,6 +412,7 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
                     }
                 }
             }
+        }
         }
     }
 
@@ -645,10 +667,14 @@ fun ShelfScreen(viewModel: ShelfViewModel) {
         SettingsScreen(
             appearance = appearance,
             haptics = haptics,
+            bubbleEnabled = bubbleEnabled,
+            overlayAllowed = overlayAllowed,
             storageLabel = ByteSizeFormatter.format(items.sumOf { it.byteSize }),
             canClear = items.isNotEmpty(),
             onAppearance = viewModel::setAppearance,
             onHaptics = viewModel::setHaptics,
+            onBubbleEnabled = viewModel::setBubbleEnabled,
+            onAllowOverlay = onAllowOverlay,
             onClearShelf = viewModel::clearShelf,
             onClose = { showSettings = false },
         )

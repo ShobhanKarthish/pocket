@@ -70,6 +70,18 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
         true,
     )
 
+    val bubbleEnabled: StateFlow<Boolean> = settingsPrefs.bubbleEnabled.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        true,
+    )
+
+    val overlayPromptDismissed: StateFlow<Boolean> = settingsPrefs.overlayPromptDismissed.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        false,
+    )
+
     private val _mode = MutableStateFlow<ShelfMode>(ShelfMode.Browse)
     val mode: StateFlow<ShelfMode> = _mode.asStateFlow()
 
@@ -215,6 +227,14 @@ class ShelfViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setHaptics(enabled: Boolean) {
         viewModelScope.launch { settingsPrefs.setHaptics(enabled) }
+    }
+
+    fun setBubbleEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsPrefs.setBubbleEnabled(enabled) }
+    }
+
+    fun dismissOverlayPrompt() {
+        viewModelScope.launch { settingsPrefs.setOverlayPromptDismissed() }
     }
 
     fun clearShelf() {

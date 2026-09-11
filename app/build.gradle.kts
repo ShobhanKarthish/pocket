@@ -13,8 +13,8 @@ android {
         applicationId = "com.shobhankarthish.pocket"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = providers.gradleProperty("VERSION_CODE").get().toInt()
+        versionName = providers.gradleProperty("VERSION_NAME").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

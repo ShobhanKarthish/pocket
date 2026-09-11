@@ -1,28 +1,27 @@
 # Pocket
 
-Collect now. Share when you're ready.
+**Collect now. Share when you're ready.**
 
-Pocket is a temporary local tray on Android. A floating bubble sits over other apps so you can drop things in, or tap to share them out. Share from another app still works. Pocket copies images, PDFs, text, and http(s) links into its own storage, lists them on one shelf, and lets you share those copies later. The original file is never modified.
+Pocket is a temporary tray on Android. A floating bubble sits over other apps. Share images, PDFs, notes, and links in; Pocket keeps its own copy on this device; share that copy out when you know where it’s going.
 
-This build is one shelf, on-device only. There is no account, no server, and the app does not request the `INTERNET` permission.
+No account. No server. The app does not request the `INTERNET` permission. This is not [Mozilla’s discontinued Pocket](https://blog.mozilla.org/en/mozilla/building-whats-next/).
 
-## Floating bubble
+[![CI](https://github.com/ShobhanKarthish/pocket/actions/workflows/ci.yml/badge.svg)](https://github.com/ShobhanKarthish/pocket/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-The bubble is the main interaction. It uses `SYSTEM_ALERT_WINDOW` (`TYPE_APPLICATION_OVERLAY`) plus a special-use foreground service so it can stay up after you leave Pocket.
+<p align="center">
+  <img src="docs/demo/empty-light.png" alt="Empty Pocket Shelf" width="220">
+  <img src="docs/demo/populated-light.png" alt="Shelf with an image, a note, and a link" width="220">
+  <img src="docs/demo/mixed-share-choice-light.png" alt="Share files and text as separate actions" width="220">
+</p>
 
-First launch asks for **Display over other apps**. Without that permission the shelf still works; Settings can turn the bubble on later.
+<p align="center"><sub>Shelf stills from the running app. There is no in-repo screenshot of the bubble yet.</sub></p>
 
-Tap the bubble to open a compact tray: open the full shelf, share everything, clear, or hide. Drag it; it snaps to the left or right edge and remembers that placement across rotation. Hide from the tray, the notification, or Settings.
+## Install
 
-### Drag and drop (honest)
+Android **8.0** or newer (API 26). Sideload from [Releases](https://github.com/ShobhanKarthish/pocket/releases) once a `vX.Y.Z` tag has been published, or build locally.
 
-Pocket listens for system drag events on the overlay and, when Android delivers them, copies the payload the same way as a share. The bubble expands into a drop shelf on `ACTION_DRAG_STARTED`.
-
-Cross-app drop onto an overlay is **not reliable** on Android. Many apps never start a global drag, and some versions never dispatch `DragEvent` to `TYPE_APPLICATION_OVERLAY` windows. Pocket does not fake an in-app-only demo and does not use Accessibility to watch other apps. If a drop does not land, use **Share → Pocket** — that path is the one that always works.
-
-## Build and install a debug APK
-
-You need JDK 17+ and Android SDK platform 35.
+You need **JDK 17+** and Android SDK **platform 35**.
 
 ```bash
 export JAVA_HOME=/path/to/jdk-17
@@ -31,72 +30,52 @@ export ANDROID_HOME=/path/to/android-sdk
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
-
-Unit tests for ingest, mime allow-list, delete, selection order, arrange, the share matrix, bubble placement, and overlay drop planning:
+Unit tests:
 
 ```bash
 ./gradlew :app:testDebugUnitTest
 ```
 
-## Share in
+`scripts/verify-debug.sh` runs those tests, builds the debug APK, and fails if `INTERNET` leaked into it.
 
-Pocket registers as an `ACTION_SEND` target for `image/*`, `application/pdf`, and `text/plain`. It also registers `ACTION_SEND_MULTIPLE` for images and PDFs. A mixed batch can arrive as `*/*`. Pocket copies each URI it can read, skips the rest, and says how many landed if the batch is only a partial success.
+## Overlay permission
 
-When a file share arrives, Pocket reads the content URI while the grant is still valid, copies the stream into `filesDir/shelf/`, then writes metadata to Room. The source URI is not stored. After that, the item survives process death from the local file plus the database row.
+The bubble needs **Display over other apps**. Pocket asks on first launch. Without it, the shelf still works from the Pocket app and from **Share → Pocket**; Settings can turn the bubble on later.
 
-A `text/plain` share uses `EXTRA_TEXT`. A single http(s) URL becomes a link item whose list title is the hostname and whose subtitle is the truncated URL. Any other non-empty string becomes a text item (first line + `TEXT · size`). Both write UTF-8 into `filesDir/shelf/` and a Room row. You can also add a note from the shelf menu.
+Android may also ask to post a notification. That notification is only so the bubble’s foreground service can stay up while you use other apps.
 
-You can also tap **Add** (or **Add items** on an empty shelf) and choose files with the system document picker, or add a note from the Add sheet. Pocket copies that file the same way. It does not take a persistable URI permission.
+## How to use
 
-## Share out (FileProvider)
+1. **Add items** with **Share → Pocket** from Photos, Files, a browser, or any other app. That is the reliable path. You can also tap **Add** on the shelf to pick files or write a note.
+2. Pocket **copies** the payload into its own storage while the share grant is still valid. The original in the other app is never modified.
+3. Tap the **bubble** for tray actions: open the shelf, share everything, clear, or hide. Drag it; it snaps to an edge.
+4. On the shelf, open an item, select several, arrange order, then **Share** or **Remove**. Mixed files and text are offered as separate actions so nothing is dropped silently.
 
-The FileProvider authority is `com.shobhankarthish.pocket.files`. Paths are limited to the `shelf/` directory under internal files.
+Cross-app drag-and-drop onto the overlay is **unreliable** on Android. Many apps never start a global drag, and some versions never deliver drops to overlay windows. If a drop does not land, use **Share → Pocket**. Pocket does not use Accessibility to watch other apps.
 
-A single file or one text/link still uses `ACTION_SEND`. Several images use `ACTION_SEND_MULTIPLE` with `image/*` or one shared image MIME. Several PDFs use `application/pdf`. Images and PDFs together use `*/*` and Pocket warns that some apps may not accept the mix.
+## Privacy
 
-Text and links share as one `text/plain` body in shelf order. Files plus text or links open a sheet headed **Share selected items**, with **Share files (n)**, **Share text (n)**, and **Copy text** as rows. Pocket does not drop the text, attach it silently onto the file send, show Sent, or clear the selection after share. From the bubble, mixed files+text opens the full shelf so that sheet can run.
+- Copies live in Pocket’s app storage on this device.
+- There is no account and no server.
+- `INTERNET` is removed in the manifest (`tools:node="remove"`). CI checks the built APK.
+- **Display over other apps** is only used to show the bubble.
+- Removing an item deletes Pocket’s copy only.
 
-Tap a row to open it. Images fill the screen and pinch to zoom, with **Share · Remove**. Text is **Copy · Share**. A link is **Open link · Copy · Share**. A PDF opens in another app if one is installed. If none is, Pocket says so and Share stays.
+## Releases
 
-Long-press a row, or use **Select items**, to select several. The top bar shows **N selected** with Close and Select all. Share and Remove sit in the bottom bar. There is no Move on a single shelf. Close leaves selection. Header **Add** is hidden while selecting or arranging.
+App versions live in `gradle.properties` as `VERSION_NAME` and `VERSION_CODE`, and are wired into the Android module. Git tags are `v` plus `VERSION_NAME`.
 
-**Arrange** shows drag handles, **Done**, and Move up / Move down on each row. Order is stored as `sortIndex` on the Room row.
+After merging a version bump and [CHANGELOG](CHANGELOG.md) entry to `main`:
 
-Removing an item fades the row, then Pocket deletes its copy after a short **Undo** snackbar. The file you originally shared from is left alone. Clearing from the bubble asks first, then deletes without that snackbar.
+```bash
+git tag vX.Y.Z
+git push --tags
+```
 
-Motion is press ripple, selection fill/outline 140 ms in both directions, add/remove 180 ms, Material sheet transitions, and arrange lift with light haptics. The bubble uses the same light haptic on tap, snap, and drop. Sheet buttons finish dismissal before opening the next surface and ignore repeated taps while closing. Motion snaps off when animator or transition duration is 0, including changes while the screen is open. There is no bounce, launch stagger, glass, glow, or decorative loop.
+That tag must match `VERSION_NAME` (for example `v0.2.0`). GitHub Actions then creates a GitHub Release and attaches a debug APK (sideloadable) plus a release APK when the unsigned package builds. These are not Play Store–signed.
 
-The interface is monochrome in both appearances, including menus, switches, dialogs, and elevated surfaces; image previews keep their original colors. Selection has a visible check and a whole-row checkbox target. Settings uses full-width radio choices, a haptics switch, a floating-bubble switch, and a single privacy block. Empty-state controls are fully visible with 48 dp targets. Open note drafts survive rotation, and image zoom/pan stays inside the preview viewport.
+Current app version: **0.2.0** (`versionCode` 2). Tag `v0.2.0` on `main` to publish the first versioned GitHub Release. Older `debug-*` tags are ad-hoc APK drops, not versioned releases.
 
-## What this slice includes
+## License
 
-- Always-on floating bubble over other apps (`TYPE_APPLICATION_OVERLAY`)
-- First-run Display over other apps flow, Settings toggle, hide/show
-- Draggable bubble that snaps to an edge and remembers placement
-- Tap tray: open shelf, share all, clear, hide
-- Drop target on the overlay when Android delivers drag events
-- Share-sheet ingest (the reliable cross-app path)
-- One persistent shelf
-- Receive one image, PDF, text note, or http(s) link
-- Receive a batch of images and/or PDFs through `ACTION_SEND_MULTIPLE`
-- Copy into app-owned storage
-- Room metadata and persisted shelf order
-- DataStore flag for the How to add sheet
-- List with filename, type, size, and a full-color image thumb when the file decodes
-- Multi-select share and remove, share order matching the shelf
-- Arrange with drag handles and Move up / Move down
-- Item detail: image preview, text and link read, PDF handoff
-- Mixed share choice when files and text are selected together
-- Settings (Appearance System/Light/Dark, Haptics, Floating bubble, Storage + Clear shelf, Privacy)
-- FileProvider share-out, including `ACTION_SEND_MULTIPLE`
-- Safe remove with Undo
-- Astra redesign freeze §12 (unboxed rows, header Add, no FAB)
-- Freeze motion (BRIEF table only, reduce-motion, no Dynamic Color)
-
-## What this slice leaves out
-
-- Multiple shelves, a shelf switcher, move, folders, tags, search
-- Accessibility watching, clipboard monitoring
-- Video, audio
-- OCR, AI, ZIP, cloud, accounts, ads, analytics
+[MIT](LICENSE)

@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Check tag matches VERSION_NAME
+        run: |
+          set -euo pipefail
+          VERSION_NAME="$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')"
+          VERSION_CODE="$(grep '^VERSION_CODE=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')"
+          TAG="${GITHUB_REF_NAME}"
+          EXPECTED="v${VERSION_NAME}"
+          if [[ "$TAG" != "$EXPECTED" ]]; then
+            echo "Tag '$TAG' does not match VERSION_NAME '$VERSION_NAME' (expected '$EXPECTED')." >&2
+            echo "Bump gradle.properties and CHANGELOG.md, merge to main, then tag." >&2
+            exit 1
+          fi
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          echo "Matched $TAG (versionCode $VERSION_CODE)"
+
+      - name: Test and assemble APKs
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --stacktrace
+
+      - name: Check APKs have no INTERNET permission
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          apk_found=0
+          for apk in app/build/outputs/apk/debug/*.apk app/build/outputs/apk/release/*.apk; do
+            ./scripts/check-apk-no-internet.sh "$apk"
+            apk_found=1
+          done
+          if [[ "$apk_found" -eq 0 ]]; then
+            echo "No APKs found under app/build/outputs/apk" >&2
+            exit 1
+          fi
+
+      - name: Stage release assets
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/Pocket-${VERSION_NAME}-debug.apk"
+          shopt -s nullglob
+          for apk in app/build/outputs/apk/release/*.apk; do
+            base="$(basename "$apk")"
+            case "$base" in
+              *unsigned*) dest="dist/Pocket-${VERSION_NAME}-release-unsigned.apk" ;;
+              *) dest="dist/Pocket-${VERSION_NAME}-release.apk" ;;
+            esac
+            cp "$apk" "$dest"
+          done
+          ls -la dist
+
+      - name: Notes from CHANGELOG
+        run: |
+          set -euo pipefail
+          {
+            echo "Pocket ${VERSION_NAME} (\`versionCode\` ${VERSION_CODE})."
+            echo
+            echo "Sideload \`Pocket-${VERSION_NAME}-debug.apk\`. Allow **Display over other apps** when asked."
+            echo "These APKs are not Play Store–signed."
+            echo
+            awk -v ver="${VERSION_NAME}" '
+              $0 ~ "^## \\[" ver "\\]" {p=1; next}
+              p && $0 ~ /^## / {exit}
+              p {print}
+            ' CHANGELOG.md
+          } > /tmp/release-notes.md
+          cat /tmp/release-notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Pocket ${VERSION_NAME}" \
+            --notes-file /tmp/release-notes.md \
+            dist/*.apk

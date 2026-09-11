@@ -1,6 +1,6 @@
 # Astra redesign v1
 
-Ink **PASS 2026-09-09**. Scope **A**: one shelf, no multi-shelf. The floating bubble is now in-product (owner override); this pack still owns **shelf** chrome only.
+Ink **PASS 2026-09-09**. Scope **A**: one shelf, no bubble, no multi-shelf.
 
 This pack is freeze **DESIGN-FREEZE §12**. Where redesign **R** conflicts with elevation **B** geometry (56 dp bar, count below the bar, boxed 16 dp cards, 12 dp gaps, FAB), **R wins**.
 
@@ -72,8 +72,7 @@ Overflow **Settings**. Full-screen, same 72 dp header, Close.
 Flat sections on that screen:
 
 - **Appearance** — System / Light / Dark (no Dynamic Color). Full-width radio rows with a visible selected state. Every Material color role, including errors and elevated surfaces, is neutral; photos retain their original colors.
-- **Haptics** — one whole-row switch for Pocket’s arrange lift and bubble snap/tap.
-- **Floating bubble** — whole-row switch. Needs Display over other apps. Hide from the bubble, the notification, or this row.
+- **Haptics** — one whole-row switch for Pocket’s arrange lift.
 - **Storage** — shelf size, **Clear shelf** (confirm; same delete/Undo path).
 - **Privacy** — on-device, no account, no INTERNET.
 

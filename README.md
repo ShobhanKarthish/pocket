@@ -2,9 +2,9 @@
 
 **Collect now. Share when you're ready.**
 
-Pocket is a temporary tray on Android. A floating bubble sits over other apps. Share images, PDFs, notes, and links in; Pocket keeps its own copy on this device; share that copy out when you know where it’s going.
+Pocket is a temporary tray on Android. Share images, PDFs, notes, and links in; Pocket keeps its own copy on this device; share that copy out when you know where it’s going.
 
-No account. No server. The app does not request the `INTERNET` permission. This is not [Mozilla’s discontinued Pocket](https://blog.mozilla.org/en/mozilla/building-whats-next/).
+No account. No server. The app does not request the `INTERNET` permission.
 
 [![CI](https://github.com/ShobhanKarthish/pocket/actions/workflows/ci.yml/badge.svg)](https://github.com/ShobhanKarthish/pocket/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -15,7 +15,7 @@ No account. No server. The app does not request the `INTERNET` permission. This 
   <img src="docs/demo/mixed-share-choice-light.png" alt="Share files and text as separate actions" width="220">
 </p>
 
-<p align="center"><sub>Shelf stills from the running app. There is no in-repo screenshot of the bubble yet.</sub></p>
+<p align="center"><sub>Shelf stills from the running app.</sub></p>
 
 ## Install
 
@@ -38,27 +38,17 @@ Unit tests:
 
 `scripts/verify-debug.sh` runs those tests, builds the debug APK, and fails if `INTERNET` leaked into it.
 
-## Overlay permission
-
-The bubble needs **Display over other apps**. Pocket asks on first launch. Without it, the shelf still works from the Pocket app and from **Share → Pocket**; Settings can turn the bubble on later.
-
-Android may also ask to post a notification. That notification is only so the bubble’s foreground service can stay up while you use other apps.
-
 ## How to use
 
-1. **Add items** with **Share → Pocket** from Photos, Files, a browser, or any other app. That is the reliable path. You can also tap **Add** on the shelf to pick files or write a note.
+1. **Add items** with **Share → Pocket** from Photos, Files, a browser, or any other app. You can also tap **Add** on the shelf to pick files or write a note.
 2. Pocket **copies** the payload into its own storage while the share grant is still valid. The original in the other app is never modified.
-3. Tap the **bubble** for tray actions: open the shelf, share everything, clear, or hide. Drag it; it snaps to an edge.
-4. On the shelf, open an item, select several, arrange order, then **Share** or **Remove**. Mixed files and text are offered as separate actions so nothing is dropped silently.
-
-Cross-app drag-and-drop onto the overlay is **unreliable** on Android. Many apps never start a global drag, and some versions never deliver drops to overlay windows. If a drop does not land, use **Share → Pocket**. Pocket does not use Accessibility to watch other apps.
+3. On the shelf, open an item, select several, arrange order, then **Share** or **Remove**. Mixed files and text are offered as separate actions so nothing is dropped silently.
 
 ## Privacy
 
 - Copies live in Pocket’s app storage on this device.
 - There is no account and no server.
 - `INTERNET` is removed in the manifest (`tools:node="remove"`). CI checks the built APK.
-- **Display over other apps** is only used to show the bubble.
 - Removing an item deletes Pocket’s copy only.
 
 ## Releases

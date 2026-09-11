@@ -78,7 +78,7 @@ jobs:
           {
             echo "Pocket ${VERSION_NAME} (\`versionCode\` ${VERSION_CODE})."
             echo
-            echo "Sideload \`Pocket-${VERSION_NAME}-debug.apk\`. Allow **Display over other apps** when asked."
+            echo "Sideload \`Pocket-${VERSION_NAME}-debug.apk\`."
             echo "These APKs are not Play Store–signed."
             echo
             awk -v ver="${VERSION_NAME}" '

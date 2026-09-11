@@ -8,6 +8,10 @@ Git tags are `v` plus `VERSION_NAME`, for example `v0.2.0`.
 
 ## [Unreleased]
 
+### Removed
+
+- Always-on floating bubble overlay (`SYSTEM_ALERT_WINDOW`, special-use foreground service, boot persistence, first-run Display over other apps, Settings toggle)
+
 ## [0.2.0] - 2026-09-11
 
 Current app (`versionCode` 2). First taggable GitHub Release.

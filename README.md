@@ -4,7 +4,7 @@
 
 Pocket is a temporary tray on Android. A floating bubble sits over other apps. Share images, PDFs, notes, and links in; Pocket keeps its own copy on this device; share that copy out when you know where it’s going.
 
-No account. No server. The app does not request the `INTERNET` permission. This is not [Mozilla’s discontinued Pocket](https://blog.mozilla.org/en/mozilla/building-whats-next/).
+No account. No server. The app does not request the `INTERNET` permission.
 
 [![CI](https://github.com/ShobhanKarthish/pocket/actions/workflows/ci.yml/badge.svg)](https://github.com/ShobhanKarthish/pocket/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)

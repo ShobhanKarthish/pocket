@@ -55,14 +55,10 @@ import com.shobhankarthish.pocket.ui.theme.Astra
 fun SettingsScreen(
     appearance: Appearance,
     haptics: Boolean,
-    bubbleEnabled: Boolean,
-    overlayAllowed: Boolean,
     storageLabel: String,
     canClear: Boolean,
     onAppearance: (Appearance) -> Unit,
     onHaptics: (Boolean) -> Unit,
-    onBubbleEnabled: (Boolean) -> Unit,
-    onAllowOverlay: () -> Unit,
     onClearShelf: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -155,64 +151,6 @@ fun SettingsScreen(
                     onCheckedChange = null,
                     modifier = Modifier.clearAndSetSemantics {},
                 )
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .toggleable(
-                            value = bubbleEnabled,
-                            role = Role.Switch,
-                            onValueChange = { enabled ->
-                                onBubbleEnabled(enabled)
-                                if (enabled && !overlayAllowed) onAllowOverlay()
-                            },
-                        )
-                        .heightIn(min = 64.dp)
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.floating_bubble),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                        Text(
-                            text = if (bubbleEnabled && !overlayAllowed) {
-                                stringResource(R.string.floating_bubble_missing)
-                            } else {
-                                stringResource(R.string.floating_bubble_body)
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(
-                        checked = bubbleEnabled,
-                        onCheckedChange = null,
-                        modifier = Modifier.clearAndSetSemantics {},
-                    )
-                }
-                if (bubbleEnabled && !overlayAllowed) {
-                    Text(
-                        text = stringResource(R.string.allow_overlay),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp)
-                            .clip(MaterialTheme.shapes.small)
-                            .clickable(role = Role.Button, onClick = onAllowOverlay)
-                            .padding(horizontal = 12.dp, vertical = 16.dp),
-                    )
-                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(16.dp))

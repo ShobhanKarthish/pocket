@@ -55,7 +55,7 @@ Empty stills were recaptured after packing the empty dock as one block: **Add it
 
 - No physical device.
 - `am start` + MediaStore `ACTION_SEND` still cannot grant read to Pocket on API 30.
-- Cross-app drag onto the overlay is device/OS dependent; share-in remains the reliable path.
+- No multi-shelf, no bubble (out of slice).
 - `add-list-share-remove.mp4` still shows the pre-Astra FAB/card chrome.
 - Item-detail stills do not show pinch zoom or an external PDF viewer.
 - APK is not committed.

@@ -132,12 +132,7 @@ object ShareOut {
     }
 
     private fun startChooser(context: Context, share: Intent) {
-        val chooser = Intent.createChooser(share, context.getString(R.string.share_chooser))
-        if (context !is android.app.Activity) {
-            share.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(chooser)
+        context.startActivity(Intent.createChooser(share, context.getString(R.string.share_chooser)))
     }
 }
 

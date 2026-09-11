@@ -1,10 +1,10 @@
 # Pocket design freeze
 
-Scope **A**. One shelf. On-device only. The owner chose an always-on floating bubble as the main interaction; that overrides the earlier “no overlay” line.
+Scope **A**. One shelf. No bubble. No multi-shelf. On-device only.
 
 ## 1 Product
 
-Collect now. Share when ready. A bubble sits over other apps. Drop onto it when Android allows, or share in. Pocket copies inbound images, PDFs, text, and http(s) links into app-owned storage and lists them on one shelf. Tap the bubble to open the shelf, share, clear, or hide.
+Collect now. Share when ready. Pocket copies inbound images, PDFs, text, and http(s) links into app-owned storage and lists them on one shelf.
 
 ## 2 Elevation B (superseded on geometry)
 
@@ -64,7 +64,7 @@ See Astra R8.
 
 ## 11 Out of slice
 
-Multiple shelves, Accessibility watching, clipboard monitor, video, audio, OCR, cloud, accounts.
+Multiple shelves, bubble, overlays, Accessibility, clipboard monitor, video, audio, OCR, cloud, accounts.
 
 ## 12 Astra redesign pack
 
